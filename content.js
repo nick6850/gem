@@ -3,8 +3,23 @@
 /////////////////////////////////////////////////////////////
 let conversationHistory = [];
 
-// Helper to get all text on the page with selected text marked
-function getAllPageText() {
+// == LLM Provider Configuration ==
+// Current LLM provider: 'local' or 'gemini'
+let currentLLMProvider = 'local';
+
+
+// Wrapper function that routes to the appropriate LLM
+async function analyzeText(selectedText, context, isFollowUp = false) {
+  if (currentLLMProvider === 'local') {
+    return await analyzeWithLocalLLM(selectedText, context, isFollowUp);
+  } else if (currentLLMProvider === 'gemini') {
+    return await analyzeWithGeminiLLM(selectedText, context, isFollowUp);
+  } else {
+    throw new Error(`Unknown LLM provider: ${currentLLMProvider}`);
+  }
+}
+
+function getContextAroundSelection() {
   // Get the trimmed inner text of the entire document body
   let pageText = document.body.innerText.trim();
 
@@ -53,7 +68,7 @@ function getAllPageText() {
       const finishMarkerIndex = pageTextWords.indexOf("<<</SELECTED>>>");
 
       // Define the number of words to include before and after the selection
-      const windowSize = 1000;
+      const windowSize = currentLLMProvider === 'local' ? 20 : 150;
 
       // Calculate the start and end indices for slicing, ensuring they stay within bounds
       const start = Math.max(startMarkerIndex - windowSize, 0);
@@ -62,16 +77,30 @@ function getAllPageText() {
         pageTextWords.length
       );
 
-      // Extract the final text window around the selection
-      const finalText = pageTextWords.slice(start, end).join(" ");
+      // Extract context before, selected text, and context after
+      const contextBefore = pageTextWords.slice(start, startMarkerIndex).join(" ");
+      const contextAfter = pageTextWords.slice(finishMarkerIndex + 1, end).join(" ");
 
-      // Return the final text containing the selection and surrounding context
-      return finalText;
+      // Extract the final text window around the selection
+      const fullContext = pageTextWords.slice(start, end).join(" ");
+
+      // Return object with separate components
+      return {
+        selectedText: selectedText,
+        contextBefore: contextBefore,
+        contextAfter: contextAfter,
+        fullContext: fullContext
+      };
     }
   }
 
-  // If there is no selection, return the entire page text
-  return pageText;
+  // If there is no selection, return object with full page text
+  return {
+    selectedText: "",
+    contextBefore: "",
+    contextAfter: "",
+    fullContext: pageText
+  };
 }
 
 // Inject custom scrollbar styling and set consistent font size
@@ -263,6 +292,59 @@ floatingButton.addEventListener("mouseleave", () => {
   floatingButton.style.transform = "scale(1)";
 });
 document.body.appendChild(floatingButton);
+
+// Create notification element for provider switching
+const notificationDiv = document.createElement("div");
+notificationDiv.className = "provider-notification my-ai-helper-extension";
+notificationDiv.style.cssText = `
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+  padding: 16px 24px !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  z-index: 10002 !important;
+  display: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  border: 2px solid #4285f4 !important;
+`;
+
+// Function to show notification
+function showProviderNotification(provider) {
+  const providerName = provider === 'local' ? 'Local LLM' : 'Gemini AI';
+  const color = provider === 'local' ? '#ff6b35' : '#4285f4';
+  const emoji = provider === 'local' ? '🏠' : '🤖';
+
+  notificationDiv.innerHTML = `${emoji} Switched to ${providerName}`;
+  notificationDiv.style.borderColor = color;
+  notificationDiv.style.display = 'block';
+
+  // Hide after 2 seconds
+  setTimeout(() => {
+    notificationDiv.style.display = 'none';
+  }, 2000);
+}
+
+// Initialize notification
+document.body.appendChild(notificationDiv);
+
+// Make setLLMProvider function available globally
+window.setLLMProvider = function(provider) {
+  if (provider === 'local' || provider === 'gemini') {
+    currentLLMProvider = provider;
+    console.log(`✅ Switched to ${provider.toUpperCase()} LLM provider`);
+    console.log(`💡 Switch providers: Ctrl/Cmd+Shift+P or use setLLMProvider('local'/'gemini')`);
+
+    // Show notification
+    showProviderNotification(provider);
+  } else {
+    console.error(`❌ Invalid provider: ${provider}. Use 'local' or 'gemini'`);
+  }
+};
 
 // Create a popup element
 const popup = document.createElement("div");
@@ -462,172 +544,10 @@ function positionButton(rect) {
 }
 
 let lastSelectedText = "";
+let lastContextText = "";
 let originalText = "";
 
-// == Gemini API details ==
-async function analyzeWithGemini(text, isFollowUp = false) {
-  const API_ENDPOINT =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-  const API_KEY = "AIzaSyC9jnmAh_cyvg0hNa5bejNtKGRhkDC4noE"; // DONT DELETE
-
-  if (!text.trim()) {
-    throw new Error("Empty text provided");
-  }
-
-  ///////////////////////////////////////////
-  // == Build or update the conversation ==
-  ///////////////////////////////////////////
-  if (isFollowUp) {
-    // User follow-up
-    conversationHistory.push({
-      role: "user",
-      content: text,
-    });
-  } else {
-    // First time
-    conversationHistory.push({
-      role: "system",
-      content: text,
-    });
-  }
-
-  // Convert conversation into a single string
-  const conversationText = conversationHistory
-    .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-    .join("\n\n");
-
-  let prompt;
-  if (!isFollowUp) {
-    prompt = `You have an excerpt from a webpage. The selected word or phrase is marked in the text between the tags <<<SELECTED>>> and <<</SELECTED>>>.
-
-${conversationText}
-
-1. Identify the selected text inside the tags.
-2. Define or explain it:
- - If it is a single word, collocation, or idiom, provide its most common meaning. If it’s a verb, use its infinitive form.
- - If it’s longer than three words, paraphrase it simply for easy understanding, without repeating the original phrase.
- - Do not include or mention the <<<SELECTED>>> or <<</SELECTED>>> tags in your reply.
-
-3. Analyze its meaning and usage in the context.
- - If it includes slang, metaphors, jokes, or cultural references, explain them clearly.
- - Keep explanations short, clear, and easy to understand.
- - Do NOT mention the selection markers or explain their presence to the user.
-
-Examples:
-Context:
-Where do polar bears keep their money? In a <<<SELECTED>>>snowbank<<</SELECTED>>>.
-
-Output:
-**Definition:** Snowbank means a pile of snow.
-
-**Context analysis:** This is a wordplay joke. It refers to both a pile of snow and a bank where you keep money.
-
-Context:
-<<<SELECTED>>>Renat Davletgildeyev accused Zhirinovsky of sexual harassment<<</SELECTED>>>
-
-Output:
-**Explanation:** Renat Davletgildeyev officially claimed Zhirinovsky engaged in unwanted sexual behavior.
-
-**Context analysis:** This refers to a serious accusation against a well-known political figure.
-
-IMPORTANT:
-Never show or mention the <<<SELECTED>>> markers in the reply.
-  `;
-  } else {
-    const lastAssistantMessage = [...conversationHistory]
-      .reverse()
-      .find((m) => m.role === "assistant")?.content || "";
-    const originalSelection = originalText || "";
-
-    prompt = `Answer the user's latest question directly. Use the prior reply only if helpful. Do not re-analyze the original selection unless asked.
-
-Original selection: "${originalSelection}"
-
-Prior reply: "${lastAssistantMessage}"
-
-User question: "${text}"
-
-Rules:
-- Be clear and helpful.
-- Avoid repeating context analysis.
-- Max 150 characters.
-- If info is missing, use your general knowledge without mentioning missing context.`;
-  }
-
-  try {
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_CIVIC_INTEGRITY",
-          threshold: "BLOCK_NONE",
-        },
-      ],
-    };
-
-    const response = await fetch(`${API_ENDPOINT}?key=${API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    console.log("Received response status:", response.status);
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("API Error Response:", errorData);
-      throw new Error(
-        `API request failed with status ${response.status}: ${errorData}`
-      );
-    }
-
-    const data = await response.json();
-    console.log("API Response data:", data);
-
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      console.error("Invalid API response format:", data);
-      throw new Error("Invalid response format from API");
-    }
-
-    // Capture the AI's reply in conversation history
-    const aiReply = data.candidates[0].content.parts[0].text;
-    conversationHistory.push({
-      role: "assistant",
-      content: aiReply,
-    });
-
-    return aiReply;
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw error; // Re-throw to handle in the calling function
-  }
-}
+// Local LLM integration - function loaded from localLLM.js
 
 /////////////////////////////////////////////////////////////
 // == Capture user's text selection, now with full page text
@@ -640,24 +560,22 @@ document.addEventListener("selectionchange", () => {
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
 
-    // We'll ignore the old "extended context" function and just use the full page text:
-    const fullPageContext = getAllPageText();
-
-    // Build the final text that includes entire page data + selected text
-    lastSelectedText = `
-      Here is some context for you including selected text:
-      "${fullPageContext}"
-
-      Selected portion is: "${selectedText}"
-    `;
-    originalText = selectedText;
+    // Get clean selected text and context separately
+    const { selectedText: cleanSelected, fullContext: context } = getContextAroundSelection();
+    
+    // Store both for the LLM call
+    lastSelectedText = cleanSelected;
+    lastContextText = context;
+    originalText = cleanSelected;
 
     positionButton(rect);
 
     // Delay showing the button in case the user is still dragging
     setTimeout(() => {
-      if (!isLeftMouseDown) floatingButton.style.display = "flex";
-    }, 1000);
+      if (!isLeftMouseDown) {
+        floatingButton.style.display = "flex";
+      }
+    }, 500);
   }
 });
 
@@ -737,8 +655,8 @@ document.addEventListener("keydown", async (e) => {
       floatingButton.style.display = "none";
 
       try {
-        console.log("Sending API request for text:", lastSelectedText);
-        const analysis = await analyzeWithGemini(lastSelectedText);
+        console.log("Sending API request for selectedText:", lastSelectedText, "context:", lastContextText);
+        const analysis = await analyzeText(lastSelectedText, lastContextText);
         console.log("Received analysis:", analysis);
 
         // === FIX ===
@@ -811,8 +729,8 @@ floatingButton.addEventListener("click", async (e) => {
     floatingButton.style.display = "none";
 
     try {
-      console.log("Sending API request for text:", lastSelectedText);
-      const analysis = await analyzeWithGemini(lastSelectedText);
+      console.log("Sending API request for selectedText:", lastSelectedText, "context:", lastContextText);
+      const analysis = await analyzeText(lastSelectedText, lastContextText);
       console.log("Received analysis:", analysis);
 
       // === FIX ===
@@ -877,7 +795,7 @@ async function handleUserInput() {
   }
 
   try {
-    const response = await analyzeWithGemini(userQuestion, true);
+    const response = await analyzeText(userQuestion, "", true);
 
     // Remove "Thinking..." bubble
     chatContainer.removeChild(thinkingMessage);
@@ -911,5 +829,20 @@ document.addEventListener("click", (event) => {
   // If click is not on the floating button, hide it
   if (!floatingButton.contains(event.target)) {
     floatingButton.style.display = "none";
+  }
+});
+
+// Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
+document.addEventListener('keydown', function(event) {
+  // Check for Ctrl+Shift+P or Cmd+Shift+P
+  if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'P') {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Switch to the other provider
+    const newProvider = currentLLMProvider === 'local' ? 'gemini' : 'local';
+    setLLMProvider(newProvider);
+
+    console.log(`🔄 Keyboard shortcut activated - switching to ${newProvider.toUpperCase()}`);
   }
 });
