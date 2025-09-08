@@ -31,18 +31,22 @@ Keep only output portion!
  const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}"
 Selected: "{SELECTED_TEXT}"
 
-ONLY output the answer. DO NOT repeat the selected text. NO labels like "Definition:" or "Context:". Start with capital letter. Use ONLY commas and periods. NO colons, semicolons, hyphens or dashes. Maximum 20 words, one paragraph, 1-2 sentences.
+Give a dictionary-like definition of the selected text. Do not repeat the selected text.
 
-For words/phrases: give definition then context meaning.
-For sentences: rephrase in simpler words.
-
-Example:
-Context: "A job came up and I thought about you."
-Selected: "came up"
-Output: Arose unexpectedly. Here it means a job became available.`;
+Maximum 15 words, 1 sentence.
+`;
 
 // Alternative follow-up prompt for OpenAI-compatible APIs (system/user format)
-const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. Answer the user's follow-up question based on the preceding conversation. The conversation started with an analysis of a text selection from a webpage. Use your general knowledge if the context is insufficient, but do not state that the information is outside the provided context. Keep your answers concise (max 150 characters) and clear.`;
+const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. Answer the user's follow-up question based on the preceding conversation. The conversation started with an analysis of a text selection from a webpage. Keep your answers concise (max 150 characters) and clear.`;
+
+// Template for building follow-up prompts with conversation context
+const FOLLOWUP_PROMPT = `Based on the original text selection: "{ORIGINAL_SELECTION}"
+
+Previous analysis: {LAST_ASSISTANT_MESSAGE}
+
+Follow-up question: {USER_QUESTION}
+
+Please provide a helpful response to this follow-up question.`;
 
 // Function to build the analysis prompt with selectedText and context
 function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {

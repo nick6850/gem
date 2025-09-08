@@ -68,7 +68,7 @@ function getContextAroundSelection() {
       const finishMarkerIndex = pageTextWords.indexOf("<<</SELECTED>>>");
 
       // Define the number of words to include before and after the selection
-      const windowSize = currentLLMProvider === 'local' ? 20 : 150;
+      const windowSize = currentLLMProvider === 'local' ? 10 : 150;
 
       // Calculate the start and end indices for slicing, ensuring they stay within bounds
       const start = Math.max(startMarkerIndex - windowSize, 0);
@@ -656,7 +656,7 @@ document.addEventListener("keydown", async (e) => {
 
       try {
         console.log("Sending API request for selectedText:", lastSelectedText, "context:", lastContextText);
-        const analysis = await analyzeText(lastSelectedText, lastContextText);
+        const analysis = await analyzeText(lastSelectedText, lastContextText.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, ""));
         console.log("Received analysis:", analysis);
 
         // === FIX ===
@@ -730,7 +730,7 @@ floatingButton.addEventListener("click", async (e) => {
 
     try {
       console.log("Sending API request for selectedText:", lastSelectedText, "context:", lastContextText);
-      const analysis = await analyzeText(lastSelectedText, lastContextText);
+      const analysis = await analyzeText(lastSelectedText, lastContextText.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, ""));
       console.log("Received analysis:", analysis);
 
       // === FIX ===
