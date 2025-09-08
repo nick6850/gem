@@ -28,37 +28,18 @@ Keep only output portion!
 ;
 
 // Simple analysis prompt for local LLM  
- const LOCAL_ANALYSIS_PROMPT = `Define the selected word/text. Max 30 words.
+ const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}"
+Selected: "{SELECTED_TEXT}"
 
-Selected text: "{SELECTED_TEXT}"
-Context: "{CONTEXT}"
+ONLY output the answer. DO NOT repeat the selected text. NO labels like "Definition:" or "Context:". Start with capital letter. Use ONLY commas and periods. NO colons, semicolons, hyphens or dashes. Maximum 20 words, one paragraph, 1-2 sentences.
+
+For words/phrases: give definition then context meaning.
+For sentences: rephrase in simpler words.
 
 Example:
-Selected text: "came up"
 Context: "A job came up and I thought about you."
-
-Output: Arose unexpectedly. Here, it means a job became available.
-
-Instructions:  
-- Always follow example structure and formatting: plain definition first, then context-aware explanation.  
-- User sees only the Output. Do NOT add anything else.  
-- Use the given context to produce an accurate, concise explanation.`;
-
-
-// Follow-up prompt for subsequent questions
-const FOLLOWUP_PROMPT = `Answer the user's latest question directly. Use the prior reply only if helpful. Do not re-analyze the original selection unless asked.
-
-Original selection: "{ORIGINAL_SELECTION}"
-
-Prior reply: "{LAST_ASSISTANT_MESSAGE}"
-
-User question: "{USER_QUESTION}"
-
-Rules:
-- Be clear and helpful.
-- Avoid repeating context analysis.
-- Max 150 characters.
-- If info is missing, use your general knowledge without mentioning missing context.`;
+Selected: "came up"
+Output: Arose unexpectedly. Here it means a job became available.`;
 
 // Alternative follow-up prompt for OpenAI-compatible APIs (system/user format)
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. Answer the user's follow-up question based on the preceding conversation. The conversation started with an analysis of a text selection from a webpage. Use your general knowledge if the context is insufficient, but do not state that the information is outside the provided context. Keep your answers concise (max 150 characters) and clear.`;

@@ -5,7 +5,7 @@ let conversationHistory = [];
 
 // == LLM Provider Configuration ==
 // Current LLM provider: 'local' or 'gemini'
-let currentLLMProvider = 'local';
+let currentLLMProvider = 'gemini';
 
 
 // Wrapper function that routes to the appropriate LLM
