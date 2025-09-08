@@ -31,10 +31,7 @@ Keep only output portion!
  const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}"
 Selected: "{SELECTED_TEXT}"
 
-Give a dictionary-like definition of the selected text. Do not repeat the selected text.
-
-Maximum 15 words, 1 sentence.
-`;
+Give a dictionary-like user-friendly explanation of selected word/idiom/chunk of text. Do not repeat the selected text. Maximum 15 words, 1 sentence. No formatting.`;
 
 // Alternative follow-up prompt for OpenAI-compatible APIs (system/user format)
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. Answer the user's follow-up question based on the preceding conversation. The conversation started with an analysis of a text selection from a webpage. Keep your answers concise (max 150 characters) and clear.`;
