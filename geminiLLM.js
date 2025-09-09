@@ -19,8 +19,8 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
       content: selectedText, // This is the user question for follow-ups
     });
 
-    // Use full conversation history for follow-ups
-    prompt = FOLLOWUP_SYSTEM_PROMPT + "\n\n" + buildConversationPrompt(conversationHistory.slice(0, -1), selectedText);
+    // Use full conversation history for follow-ups (don't slice off the current question)
+    prompt = FOLLOWUP_SYSTEM_PROMPT + "\n\n" + buildConversationPrompt(conversationHistory, selectedText);
   } else {
     // First time analysis
     prompt = buildAnalysisPrompt(selectedText, context, 'gemini');
@@ -104,6 +104,10 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
     return aiReply;
   } catch (error) {
     console.error("Gemini API Error:", error);
+    // Remove the last user message from history if the API call failed
+    if (isFollowUp && conversationHistory.length > 0) {
+      conversationHistory.pop();
+    }
     throw error; // Re-throw to handle in the calling function
   }
 }

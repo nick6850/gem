@@ -31,7 +31,7 @@ Keep only output portion!
  const LOCAL_ANALYSIS_PROMPT = `
 Context: "{CONTEXT}"
 
-Give definition ONLY to the selected chunk. Choose definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship. Do not repeat the selected chunk.
+Give definition ONLY to the selected chunk. Choose definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship.
 
 Selected chunk: "{SELECTED_TEXT}"
  `;
@@ -48,12 +48,18 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
       prompt += `User selected: "${msg.content}"\n\n`;
     } else if (msg.role === 'assistant') {
       prompt += `Assistant: ${msg.content}\n\n`;
-    } else if (msg.role === 'user') {
+    } else if (msg.role === 'user' && index > 0) {
       prompt += `User: ${msg.content}\n\n`;
     }
   });
 
-  prompt += `User: ${currentQuestion}\n\nAssistant:`;
+  // Only add current question if it's not already in history
+  const lastMsg = conversationHistory[conversationHistory.length - 1];
+  if (!lastMsg || lastMsg.content !== currentQuestion) {
+    prompt += `User: ${currentQuestion}\n\nAssistant:`;
+  } else {
+    prompt += `Assistant:`;
+  }
 
   return prompt;
 }

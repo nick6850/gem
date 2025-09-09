@@ -671,7 +671,6 @@ document.addEventListener("keydown", async (e) => {
         // === FIX ===
         // If the popup was closed while waiting for the API, do nothing.
         if (popup.style.display === "none") {
-          conversationHistory = []; // Ensure history is clean in case of race condition
           return;
         }
         // === END FIX ===
@@ -746,13 +745,12 @@ floatingButton.addEventListener("click", async (e) => {
       const analysis = await analyzeText(lastSelectedText, lastContextText.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, ""));
       console.log("Received analysis:", analysis);
 
-      // === FIX ===
-      // If the popup was closed while waiting for the API, do nothing.
-      if (popup.style.display === "none") {
-        conversationHistory = []; // Ensure history is clean in case of race condition
-        return;
-      }
-      // === END FIX ===
+        // === FIX ===
+        // If the popup was closed while waiting for the API, do nothing.
+        if (popup.style.display === "none") {
+          return;
+        }
+        // === END FIX ===
 
       // Clear "Analyzing..." and show conversation
       chatContainer.innerHTML = "";

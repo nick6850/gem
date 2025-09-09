@@ -18,10 +18,10 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
       content: selectedText, // This is the user question for follow-ups
     });
 
-    // Use full conversation history for follow-ups
+    // Use full conversation history for follow-ups (don't slice off the current question)
     messages = [
       { role: "system", content: FOLLOWUP_SYSTEM_PROMPT },
-      { role: "user", content: buildConversationPrompt(conversationHistory.slice(0, -1), selectedText) }
+      { role: "user", content: buildConversationPrompt(conversationHistory, selectedText) }
     ];
   } else {
     // First time analysis
@@ -90,7 +90,7 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
   } catch (error) {
     console.error("Local LLM Error:", error);
     // Remove the last user message from history if the API call failed
-    if (isFollowUp) {
+    if (isFollowUp && conversationHistory.length > 0) {
       conversationHistory.pop();
     }
     throw error; // Re-throw to handle in the calling function
