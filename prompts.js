@@ -28,10 +28,13 @@ Keep only output portion!
 ;
 
 // Simple analysis prompt for local LLM  
- const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}"
-Selected: "{SELECTED_TEXT}"
+ const LOCAL_ANALYSIS_PROMPT = `
+Context: "{CONTEXT}"
 
-Give a dictionary-like user-friendly explanation of selected word/idiom/chunk of text. Do not repeat the selected text. Maximum 15 words, 1 sentence. No formatting.`;
+Give definition ONLY to the selected chunk. Choose definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship. Do not repeat the selected chunk.
+
+Selected chunk: "{SELECTED_TEXT}"
+ `;
 
 // Alternative follow-up prompt for OpenAI-compatible APIs (system/user format)
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. Answer the user's follow-up question based on the preceding conversation. The conversation started with an analysis of a text selection from a webpage. Keep your answers concise (max 150 characters) and clear.`;
