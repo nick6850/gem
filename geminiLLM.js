@@ -13,26 +13,24 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
   ///////////////////////////////////////////
   let prompt;
   if (isFollowUp) {
-    // User follow-up question
+    // User follow-up question - add to conversation history
     conversationHistory.push({
       role: "user",
       content: selectedText, // This is the user question for follow-ups
     });
-    
-    const lastAssistantMessage = [...conversationHistory]
-      .reverse()
-      .find((m) => m.role === "assistant")?.content || "";
-    const originalSelection = originalText || "";
 
-    prompt = buildFollowupPrompt(originalSelection, lastAssistantMessage, selectedText);
+    // Use full conversation history for follow-ups
+    prompt = FOLLOWUP_SYSTEM_PROMPT + "\n\n" + buildConversationPrompt(conversationHistory.slice(0, -1), selectedText);
   } else {
     // First time analysis
     prompt = buildAnalysisPrompt(selectedText, context, 'gemini');
-    
-    conversationHistory.push({
-      role: "system",
-      content: `Analyzing: "${selectedText}" in context: "${context}"`
-    });
+
+    conversationHistory = [
+      {
+        role: "user",
+        content: selectedText,
+      },
+    ];
   }
 
   try {

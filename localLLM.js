@@ -12,30 +12,25 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
   let messages;
 
   if (isFollowUp) {
-    // User follow-up question
+    // User follow-up question - add to conversation history
     conversationHistory.push({
       role: "user",
       content: selectedText, // This is the user question for follow-ups
     });
 
-    const lastAssistantMessage = [...conversationHistory]
-      .reverse()
-      .find((m) => m.role === "assistant")?.content || "";
-
-    const followUpPrompt = buildFollowupPrompt(originalText || "", lastAssistantMessage, selectedText);
-
+    // Use full conversation history for follow-ups
     messages = [
       { role: "system", content: FOLLOWUP_SYSTEM_PROMPT },
-      { role: "user", content: followUpPrompt }
+      { role: "user", content: buildConversationPrompt(conversationHistory.slice(0, -1), selectedText) }
     ];
   } else {
     // First time analysis
     const systemPrompt = buildAnalysisPrompt(selectedText, context, 'local');
-    
+
     conversationHistory = [
       {
-        role: "system",
-        content: `Analyzing: "${selectedText}" in context: "${context}"`,
+        role: "user",
+        content: selectedText,
       },
     ];
 

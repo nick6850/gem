@@ -562,7 +562,12 @@ document.addEventListener("selectionchange", () => {
 
     // Get clean selected text and context separately
     const { selectedText: cleanSelected, fullContext: context } = getContextAroundSelection();
-    
+
+    // Clear conversation history for new text selection
+    if (originalText && originalText !== cleanSelected) {
+      conversationHistory = [];
+    }
+
     // Store both for the LLM call
     lastSelectedText = cleanSelected;
     lastContextText = context;
@@ -615,14 +620,14 @@ document.addEventListener("keydown", async (e) => {
   const isCtrlZ = e.ctrlKey && e.key === "z";
   const isCmdB = (e.metaKey || e.ctrlKey) && e.key === "b";
 
-  if (isCtrlZ || isCmdB) {
-    e.preventDefault();
-    e.stopPropagation();
+    if (isCtrlZ || isCmdB) {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (originalText) {
-      // Clear chat visually AND conversation history
-      chatContainer.innerHTML = "";
-      conversationHistory = [];
+      if (originalText) {
+        // Clear chat visually - keep conversation history for follow-ups
+        chatContainer.innerHTML = "";
+        // conversationHistory = []; // Keep history for follow-ups
 
       const buttonRect = floatingButton.getBoundingClientRect();
       const popupWidth = popup.offsetWidth;
@@ -649,7 +654,11 @@ document.addEventListener("keydown", async (e) => {
       popup.style.top = `${top}px`;
       popup.style.display = "block";
 
-      // Show "Analyzing..." bubble
+      // Always start fresh - no restoration between popup sessions
+      chatContainer.innerHTML = "";
+      conversationHistory = [];
+
+      // Show "Analyzing..." bubble for new analysis
       addMessage("Analyzing...", true);
       positionPopup();
       floatingButton.style.display = "none";
@@ -693,10 +702,10 @@ floatingButton.addEventListener("click", async (e) => {
   e.preventDefault();
   e.stopPropagation();
 
-  if (originalText) {
-    // Clear chat visually AND conversation history
-    chatContainer.innerHTML = "";
-    conversationHistory = [];
+    if (originalText) {
+      // Clear chat visually - keep conversation history for follow-ups
+      chatContainer.innerHTML = "";
+      // conversationHistory = []; // Keep history for follow-ups
 
     const buttonRect = floatingButton.getBoundingClientRect();
     const popupWidth = popup.offsetWidth;
@@ -723,7 +732,11 @@ floatingButton.addEventListener("click", async (e) => {
     popup.style.top = `${top}px`;
     popup.style.display = "block";
 
-    // Show "Analyzing..." bubble
+    // Always start fresh - no restoration between popup sessions
+    chatContainer.innerHTML = "";
+    conversationHistory = [];
+
+    // Show "Analyzing..." bubble for new analysis
     addMessage("Analyzing...", true);
     positionPopup();
     floatingButton.style.display = "none";
@@ -822,7 +835,7 @@ document.addEventListener("click", (event) => {
   // If click is outside the popup & the button, close the popup
   if (!popup.contains(event.target) && !floatingButton.contains(event.target)) {
     popup.style.display = "none";
-    // Clear the conversation history upon close
+    // Clear conversation history when popup closes - no persistence
     conversationHistory = [];
   }
 

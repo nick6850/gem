@@ -36,17 +36,27 @@ Give definition ONLY to the selected chunk. Choose definition that fits the cont
 Selected chunk: "{SELECTED_TEXT}"
  `;
 
-// Alternative follow-up prompt for OpenAI-compatible APIs (system/user format)
-const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. Answer the user's follow-up question based on the preceding conversation. The conversation started with an analysis of a text selection from a webpage. Keep your answers concise (max 150 characters) and clear.`;
+// Concise system prompt for follow-ups
+const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
 
-// Template for building follow-up prompts with conversation context
-const FOLLOWUP_PROMPT = `Based on the original text selection: "{ORIGINAL_SELECTION}"
+// Function to build conversation history prompt
+function buildConversationPrompt(conversationHistory, currentQuestion) {
+  let prompt = "Conversation history:\n";
 
-Previous analysis: {LAST_ASSISTANT_MESSAGE}
+  conversationHistory.forEach((msg, index) => {
+    if (msg.role === 'user' && index === 0) {
+      prompt += `User selected: "${msg.content}"\n\n`;
+    } else if (msg.role === 'assistant') {
+      prompt += `Assistant: ${msg.content}\n\n`;
+    } else if (msg.role === 'user') {
+      prompt += `User: ${msg.content}\n\n`;
+    }
+  });
 
-Follow-up question: {USER_QUESTION}
+  prompt += `User: ${currentQuestion}\n\nAssistant:`;
 
-Please provide a helpful response to this follow-up question.`;
+  return prompt;
+}
 
 // Function to build the analysis prompt with selectedText and context
 function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
@@ -67,4 +77,5 @@ function buildFollowupPrompt(originalSelection, lastAssistantMessage, userQuesti
 // Export functions and constants
 window.buildAnalysisPrompt = buildAnalysisPrompt;
 window.buildFollowupPrompt = buildFollowupPrompt;
+window.buildConversationPrompt = buildConversationPrompt;
 window.FOLLOWUP_SYSTEM_PROMPT = FOLLOWUP_SYSTEM_PROMPT;
