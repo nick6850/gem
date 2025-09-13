@@ -421,6 +421,9 @@ ruButton.style.cssText = `
   padding: 0 !important;
 `;
 
+
+
+
 const simplifyButton = document.createElement("button");
 simplifyButton.textContent = "Simplify";
 simplifyButton.style.cssText = `
@@ -431,6 +434,29 @@ simplifyButton.style.cssText = `
   background: none !important;
     padding: 0 !important;
 `;
+
+const shortifyButton = document.createElement("button");
+shortifyButton.textContent = "Shortify";
+shortifyButton.style.cssText = `
+  font-size: 9px !important;
+  color: rgb(76 75 75) !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: none !important;
+    padding: 0 !important;
+`;
+
+const culturalBackgroundButton = document.createElement("button");
+culturalBackgroundButton.textContent = "Culture";
+culturalBackgroundButton.style.cssText = `
+  font-size: 9px !important;
+  color: rgb(76 75 75) !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: none !important;
+    padding: 0 !important;
+`;
+
 
 // Helper function to create quick prompt callbacks
 function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
@@ -469,6 +495,18 @@ ruButton.addEventListener("click", createQuickPromptCallback(
   "Russian translation"
 ));
 
+shortifyButton.addEventListener("click", createQuickPromptCallback(
+  "Make it shorter",
+  "A little shorter",
+  "Shortify text"
+));
+
+culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
+  "Explain cultural background",
+  "Provide some cultural background",
+  "Cultural background"
+));
+
 simplifyButton.addEventListener("click", createQuickPromptCallback(
   "Explain in simpler terms",
   "Explain this in simpler, easier to understand terms",
@@ -476,6 +514,8 @@ simplifyButton.addEventListener("click", createQuickPromptCallback(
 ));
 
 quickPromptsContainer.appendChild(ruButton);
+quickPromptsContainer.appendChild(culturalBackgroundButton);
+quickPromptsContainer.appendChild(shortifyButton);
 quickPromptsContainer.appendChild(simplifyButton);
 popup.appendChild(quickPromptsContainer);
 

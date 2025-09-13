@@ -44,11 +44,19 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
   let prompt = "Conversation history:\n";
 
   conversationHistory.forEach((msg, index) => {
-    if (msg.role === 'user' && index === 0) {
-      prompt += `User selected: "${msg.content}"\n\n`;
+    if (msg.role === 'system') {
+      // Skip system messages in the conversation history display
+      return;
+    } else if (msg.role === 'user' && index === 1) { // Index 1 because system is at index 0
+      // Check if this is the initial user message with selected text and context
+      if (msg.content.includes('Selected text:') && msg.content.includes('Context:')) {
+        prompt += `User selected: ${msg.content}\n\n`;
+      } else {
+        prompt += `User selected: "${msg.content}"\n\n`;
+      }
     } else if (msg.role === 'assistant') {
       prompt += `Assistant: ${msg.content}\n\n`;
-    } else if (msg.role === 'user' && index > 0) {
+    } else if (msg.role === 'user' && index > 1) {
       prompt += `User: ${msg.content}\n\n`;
     }
   });

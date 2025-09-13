@@ -29,8 +29,12 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
 
     conversationHistory = [
       {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
         role: "user",
-        content: selectedText,
+        content: `Selected text: "${selectedText}"\nContext: "${context}"`,
       },
     ];
 
