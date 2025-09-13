@@ -21,7 +21,27 @@ async function analyzeText(selectedText, context, isFollowUp = false) {
 
 function getContextAroundSelection() {
   // Get the trimmed inner text of the entire document body
-  let pageText = document.body.innerText.trim();
+  // For PDFs, try multiple approaches to get text
+  let pageText = '';
+  
+  // Try PDF.js text layer first (most common PDF viewer)
+  const pdfTextLayers = document.querySelectorAll('.textLayer');
+  if (pdfTextLayers.length > 0) {
+    pageText = Array.from(pdfTextLayers)
+      .map(layer => layer.innerText || layer.textContent)
+      .join(' ')
+      .trim();
+  }
+  
+  // Fallback to document body for regular pages and other PDF viewers
+  if (!pageText && document.body) {
+    pageText = document.body.innerText.trim();
+  }
+  
+  // Final fallback to document text content
+  if (!pageText) {
+    pageText = document.documentElement.textContent.trim();
+  }
 
   // Get the current text selection
   const selection = window.getSelection();
