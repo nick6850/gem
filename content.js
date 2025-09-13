@@ -409,6 +409,17 @@ quickPromptsContainer.style.cssText = `
   margin-top: 5px !important;
 `;
 
+const ruButton = document.createElement("button");
+ruButton.textContent = "RU";
+ruButton.style.cssText = `
+  font-size: 9px !important;
+  color: rgb(76 75 75) !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: none !important;
+  margin-right: -5px !important;
+`;
+
 const simplifyButton = document.createElement("button");
 simplifyButton.textContent = "Simplify";
 simplifyButton.style.cssText = `
@@ -419,34 +430,50 @@ simplifyButton.style.cssText = `
   background: none !important;
 `;
 
-// Add click handler for simpler button
-simplifyButton.addEventListener("click", async () => {
-  if (originalText) {
-    // Show user request in chat
-    addMessage("Explain in simpler terms", false);
-    
-    // Show "Typing..." message
-    const thinkingMessage = addMessage("Typing...", true);
-    if (thinkingMessage && thinkingMessage.classList) {
-      thinkingMessage.classList.add("thinking");
-    }
-    
-    try {
-      const response = await analyzeText("Explain this in simpler, easier to understand terms", "", true);
+// Helper function to create quick prompt callbacks
+function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
+  return async () => {
+    if (originalText) {
+      // Show user request in chat
+      addMessage(userMessage, false);
       
-      // Remove "Typing..." bubble
-      chatContainer.removeChild(thinkingMessage);
+      // Show "Typing..." message
+      const thinkingMessage = addMessage("Typing...", true);
+      if (thinkingMessage && thinkingMessage.classList) {
+        thinkingMessage.classList.add("thinking");
+      }
       
-      // Show AI response
-      addMessage(response, true);
-    } catch (error) {
-      chatContainer.removeChild(thinkingMessage);
-      addMessage("Error communicating with the service.", true);
-      console.error("Simpler explanation error:", error);
+      try {
+        const response = await analyzeText(aiPrompt, "", true);
+        
+        // Remove "Typing..." bubble
+        chatContainer.removeChild(thinkingMessage);
+        
+        // Show AI response
+        addMessage(response, true);
+      } catch (error) {
+        chatContainer.removeChild(thinkingMessage);
+        addMessage("Error communicating with the service.", true);
+        console.error(`${errorContext} error:`, error);
+      }
     }
-  }
-});
+  };
+}
 
+// Add click handlers using the helper function
+ruButton.addEventListener("click", createQuickPromptCallback(
+  "Translate to Russian",
+  "Translate to Russian",
+  "Russian translation"
+));
+
+simplifyButton.addEventListener("click", createQuickPromptCallback(
+  "Explain in simpler terms",
+  "Explain this in simpler, easier to understand terms",
+  "Simpler explanation"
+));
+
+quickPromptsContainer.appendChild(ruButton);
 quickPromptsContainer.appendChild(simplifyButton);
 popup.appendChild(quickPromptsContainer);
 
