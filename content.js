@@ -463,7 +463,7 @@ function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
 // Add click handlers using the helper function
 ruButton.addEventListener("click", createQuickPromptCallback(
   "Translate to Russian",
-  "Translate to Russian",
+  "Translate inital user text to Russian",
   "Russian translation"
 ));
 
