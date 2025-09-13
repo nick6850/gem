@@ -134,16 +134,16 @@ style.innerHTML = `
       width: 6px !important;
   }
   .chat-container::-webkit-scrollbar-track {
-      background: #f1f1f1 !important;
+      background: transparent !important;
   }
   .chat-container::-webkit-scrollbar-thumb {
       background-color: #aaa !important;
       border-radius: 3px !important;
-      border: 1px solid #f1f1f1 !important;
+      border: none !important;
   }
   .chat-container {
       scrollbar-width: thin !important;
-      scrollbar-color: #aaa #f1f1f1 !important;
+      scrollbar-color: #aaa transparent !important;
       font-size: 13.5px !important; 
       font-family: ui-sans-serif !important; 
   }
@@ -165,7 +165,7 @@ style.innerHTML = `
   }
 
   .message.thinking {
-      font-size: 12px !important;
+      font-size: 13.5px !important;
   }
 `;
 document.head.appendChild(style);
@@ -400,14 +400,62 @@ chatContainer.style.cssText = `
 `;
 popup.appendChild(chatContainer);
 
+// Create quick prompts container
+const quickPromptsContainer = document.createElement("div");
+
+quickPromptsContainer.style.cssText = `
+  display: flex !important;
+  justify-content: end !important;
+  margin-top: 5px !important;
+`;
+
+const simplifyButton = document.createElement("button");
+simplifyButton.textContent = "Simplify";
+simplifyButton.style.cssText = `
+  font-size: 9px !important;
+  color: rgb(76 75 75) !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: none !important;
+`;
+
+// Add click handler for simpler button
+simplifyButton.addEventListener("click", async () => {
+  if (originalText) {
+    // Show user request in chat
+    addMessage("Explain in simpler terms", false);
+    
+    // Show "Typing..." message
+    const thinkingMessage = addMessage("Typing...", true);
+    if (thinkingMessage && thinkingMessage.classList) {
+      thinkingMessage.classList.add("thinking");
+    }
+    
+    try {
+      const response = await analyzeText("Explain this in simpler, easier to understand terms", "", true);
+      
+      // Remove "Typing..." bubble
+      chatContainer.removeChild(thinkingMessage);
+      
+      // Show AI response
+      addMessage(response, true);
+    } catch (error) {
+      chatContainer.removeChild(thinkingMessage);
+      addMessage("Error communicating with the service.", true);
+      console.error("Simpler explanation error:", error);
+    }
+  }
+});
+
+quickPromptsContainer.appendChild(simplifyButton);
+popup.appendChild(quickPromptsContainer);
+
 // Create input container
 const inputContainer = document.createElement("div");
 inputContainer.className = "input-container";
 inputContainer.style.cssText = `
-  display: flex !important; 
+  display: flex !important;
   gap: 8px !important;
-  border-top: 1px solid #e0e0e0 !important;
-  padding-top: 10px !important;
   color: black !important;
   text-align: left !important;
 `;
@@ -437,7 +485,7 @@ function addMessage(text, isAI = false) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${isAI ? "ai" : "user"}`;
   messageDiv.style.cssText = `
-    margin-bottom: 10px !important;
+    margin-top: 10px !important;
     padding: 9px 12px !important;
     border-radius: 8px !important;
     max-width: 89% !important;

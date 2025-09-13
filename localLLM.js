@@ -42,9 +42,9 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
   try {
     const requestBody = {
       model: "deepseek-llm-7b-chat",
-      messages: messages, // This is now guaranteed to be a valid array
+      messages: messages, 
       temperature: 0.7,
-      max_tokens: 256, // It's safer to set a reasonable max_tokens limit
+      max_tokens: 100, 
       stream: false,
     };
 
