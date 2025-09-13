@@ -407,6 +407,7 @@ quickPromptsContainer.style.cssText = `
   display: flex !important;
   justify-content: end !important;
   margin-top: 5px !important;
+  gap: 5px !important;
 `;
 
 const ruButton = document.createElement("button");
@@ -417,7 +418,7 @@ ruButton.style.cssText = `
   cursor: pointer !important;
   border: none !important;
   background: none !important;
-  margin-right: -5px !important;
+  padding: 0 !important;
 `;
 
 const simplifyButton = document.createElement("button");
@@ -428,6 +429,7 @@ simplifyButton.style.cssText = `
   cursor: pointer !important;
   border: none !important;
   background: none !important;
+    padding: 0 !important;
 `;
 
 // Helper function to create quick prompt callbacks
@@ -463,7 +465,7 @@ function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
 // Add click handlers using the helper function
 ruButton.addEventListener("click", createQuickPromptCallback(
   "Translate to Russian",
-  "Translate inital user text to Russian",
+  "Translate inital user text to good everyday natural Russian (not just rough direct translation that doesn't make sense). Take into account the context around the text. Answer in Russian only without extra comments.",
   "Russian translation"
 ));
 
