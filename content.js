@@ -523,7 +523,7 @@ culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
 
 originButton.addEventListener("click", createQuickPromptCallback(
   "What is the origin of the text?",
-  "Explain why exactly it means that. Where does it come from? Keep it concise and to the point.",
+  "Why does it mean what it means? What does it originate from?",
   "Origin of the text"
 ));
 
