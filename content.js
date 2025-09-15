@@ -311,7 +311,10 @@ floatingButton.addEventListener("mouseenter", () => {
 floatingButton.addEventListener("mouseleave", () => {
   floatingButton.style.transform = "scale(1)";
 });
-document.body.appendChild(floatingButton);
+
+//commented out since i use shortcut to open the popup for now
+// document.body.appendChild(floatingButton);
+
 
 // Create notification element for provider switching
 const notificationDiv = document.createElement("div");
@@ -491,7 +494,7 @@ function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
 // Add click handlers using the helper function
 ruButton.addEventListener("click", createQuickPromptCallback(
   "Translate to Russian",
-  "Translate inital user text to good everyday natural Russian (not just rough direct translation that doesn't make sense). Take into account the context around the text. Answer in Russian only without extra comments.",
+  "Translate inital user text to good everyday natural Russian. Answer in Russian only without extra comments.",
   "Russian translation"
 ));
 
@@ -503,7 +506,7 @@ shortifyButton.addEventListener("click", createQuickPromptCallback(
 
 culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
   "Explain cultural background",
-  "Provide some cultural background",
+  "Explain why exactly it means that. Where does it come from? Keep it concise and to the point.",
   "Cultural background"
 ));
 
