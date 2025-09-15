@@ -460,6 +460,17 @@ culturalBackgroundButton.style.cssText = `
     padding: 0 !important;
 `;
 
+const originButton = document.createElement("button");
+originButton.textContent = "Origin";
+originButton.style.cssText = `
+  font-size: 9px !important;
+  color: rgb(76 75 75) !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: none !important;
+    padding: 0 !important;
+`;
+
 
 // Helper function to create quick prompt callbacks
 function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
@@ -506,8 +517,14 @@ shortifyButton.addEventListener("click", createQuickPromptCallback(
 
 culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
   "Explain cultural background",
-  "Explain why exactly it means that. Where does it come from? Keep it concise and to the point.",
+  "Explain cultural background. Interesting facts, history, etc.",
   "Cultural background"
+));
+
+originButton.addEventListener("click", createQuickPromptCallback(
+  "What is the origin of the text?",
+  "Explain why exactly it means that. Where does it come from? Keep it concise and to the point.",
+  "Origin of the text"
 ));
 
 simplifyButton.addEventListener("click", createQuickPromptCallback(
@@ -518,6 +535,7 @@ simplifyButton.addEventListener("click", createQuickPromptCallback(
 
 quickPromptsContainer.appendChild(ruButton);
 quickPromptsContainer.appendChild(culturalBackgroundButton);
+quickPromptsContainer.appendChild(originButton);
 quickPromptsContainer.appendChild(shortifyButton);
 quickPromptsContainer.appendChild(simplifyButton);
 popup.appendChild(quickPromptsContainer);
