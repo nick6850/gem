@@ -509,7 +509,7 @@ culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
 
 simplifyButton.addEventListener("click", createQuickPromptCallback(
   "Explain in simpler terms",
-  "Explain this in simpler, easier to understand terms",
+  "Explain this in simpler, easier to understand terms. No metaphors",
   "Simpler explanation"
 ));
 
@@ -574,10 +574,16 @@ function addMessage(text, isAI = false) {
     }
   `;
   const formattedText = text
-    // Replace bold syntax (**text** or __text__) with <strong>
+    // First escape HTML tags so they display as plain text
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    // Then apply markdown formatting
     .replace(/\*\*(.*?)\*\*|__(.*?)__/gs, "<strong>$1$2</strong>")
-    // Replace italic syntax (*text* or _text_) with <em>
     .replace(/\*(.*?)\*|_(.*?)_/gs, "<em>$1$2</em>")
+    // Format code blocks with triple backticks
+    .replace(/```([^`]+)```/gs, '<pre style="background: #f0f0f0; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 0.9em; white-space: pre-wrap; margin: 4px 0;">$1</pre>')
+    // Format inline code with single backticks
+    .replace(/`([^`]+)`/g, '<code style="background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em;">$1</code>')
     // Remove empty newlines but keep a break line before the second part
     .replace(/\n{2,}/g, "\n") // Remove extra newlines (more than one in a row)
     .replace(/\n/g, "<br>"); // Replace single newlines with <br> for the necessary breaks
