@@ -31,7 +31,7 @@ Keep only output portion!
  const LOCAL_ANALYSIS_PROMPT = `
 Context: "{CONTEXT}"
 
-Give definition ONLY to the selected chunk. Choose definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship.
+Give definition ONLY to the selected chunk. Choose user-friendly definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship.
 
 Selected chunk: "{SELECTED_TEXT}"
  `;
