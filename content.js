@@ -1051,7 +1051,7 @@ document.addEventListener("click", (event) => {
 // Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
 document.addEventListener('keydown', function(event) {
   // Check for Ctrl+Shift+P or Cmd+Shift+P
-  if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'P') {
+  if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'E') {
     event.preventDefault();
     event.stopPropagation();
 
