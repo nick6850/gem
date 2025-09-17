@@ -80,37 +80,14 @@ function getContextAroundSelection() {
       markerStart.remove();
       markerEnd.remove();
 
-      // Split the page text into an array of words
-      const pageTextWords = pageText.split(/\s+/);
+      // Try sentence-based context first
+      const sentenceResult = tryExtractSentenceContext(pageText, selectedText);
+      if (sentenceResult) {
+        return sentenceResult;
+      }
 
-      // Find the indices of the start and end markers
-      const startMarkerIndex = pageTextWords.indexOf("<<<SELECTED>>>");
-      const finishMarkerIndex = pageTextWords.indexOf("<<</SELECTED>>>");
-
-      // Define the number of words to include before and after the selection
-      const windowSize = currentLLMProvider === 'local' ? 10 : 150;
-
-      // Calculate the start and end indices for slicing, ensuring they stay within bounds
-      const start = Math.max(startMarkerIndex - windowSize, 0);
-      const end = Math.min(
-        finishMarkerIndex + windowSize,
-        pageTextWords.length
-      );
-
-      // Extract context before, selected text, and context after
-      const contextBefore = pageTextWords.slice(start, startMarkerIndex).join(" ");
-      const contextAfter = pageTextWords.slice(finishMarkerIndex + 1, end).join(" ");
-
-      // Extract the final text window around the selection
-      const fullContext = pageTextWords.slice(start, end).join(" ");
-
-      // Return object with separate components
-      return {
-        selectedText: selectedText,
-        contextBefore: contextBefore,
-        contextAfter: contextAfter,
-        fullContext: fullContext
-      };
+      // Fallback to word-based context (original method)
+      return extractWordBasedContext(pageText, selectedText);
     }
   }
 
@@ -120,6 +97,94 @@ function getContextAroundSelection() {
     contextBefore: "",
     contextAfter: "",
     fullContext: pageText
+  };
+}
+
+// Helper function to try extracting sentence-based context
+function tryExtractSentenceContext(pageText, selectedText) {
+  // Find the position of the selected text markers
+  const startMarkerIndex = pageText.indexOf("<<<SELECTED>>>");
+  const endMarkerIndex = pageText.indexOf("<<</SELECTED>>>");
+  
+  if (startMarkerIndex === -1 || endMarkerIndex === -1) {
+    return null;
+  }
+
+  // Find the start of the sentence containing the selection
+  // Look backwards from the start marker to find the beginning of the sentence
+  let sentenceStart = 0; // Default to beginning of text
+  for (let i = startMarkerIndex - 1; i >= 0; i--) {
+    const char = pageText[i];
+    if (char === '.' || char === '!' || char === '?') {
+      // Found end of previous sentence, our sentence starts after this
+      sentenceStart = i + 1;
+      break;
+    }
+  }
+
+  // Find the end of the sentence containing the selection
+  // Look forwards from the end marker to find the end of the sentence
+  let sentenceEnd = endMarkerIndex;
+  for (let i = endMarkerIndex; i < pageText.length; i++) {
+    const char = pageText[i];
+    if (char === '.' || char === '!' || char === '?') {
+      // Found end of sentence
+      sentenceEnd = i + 1;
+      break;
+    }
+  }
+  
+  // If we didn't find a sentence ending, use end of text
+  if (sentenceEnd === endMarkerIndex) {
+    sentenceEnd = pageText.length;
+  }
+
+  // Extract the sentence containing the selected text
+  const fullContext = pageText.substring(sentenceStart, sentenceEnd).trim();
+
+  // Clean up markers from the context
+  const cleanFullContext = fullContext.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, '');
+
+  return {
+    selectedText: selectedText,
+    contextBefore: '',
+    contextAfter: '',
+    fullContext: cleanFullContext
+  };
+}
+
+// Helper function for word-based context (original method)
+function extractWordBasedContext(pageText, selectedText) {
+  // Split the page text into an array of words
+  const pageTextWords = pageText.split(/\s+/);
+
+  // Find the indices of the start and end markers
+  const startMarkerIndex = pageTextWords.indexOf("<<<SELECTED>>>");
+  const finishMarkerIndex = pageTextWords.indexOf("<<</SELECTED>>>");
+
+  // Define the number of words to include before and after the selection
+  const windowSize = currentLLMProvider === 'local' ? 10 : 150;
+
+  // Calculate the start and end indices for slicing, ensuring they stay within bounds
+  const start = Math.max(startMarkerIndex - windowSize, 0);
+  const end = Math.min(
+    finishMarkerIndex + windowSize,
+    pageTextWords.length
+  );
+
+  // Extract context before, selected text, and context after
+  const contextBefore = pageTextWords.slice(start, startMarkerIndex).join(" ");
+  const contextAfter = pageTextWords.slice(finishMarkerIndex + 1, end).join(" ");
+
+  // Extract the final text window around the selection
+  const fullContext = pageTextWords.slice(start, end).join(" ");
+
+  // Return object with separate components
+  return {
+    selectedText: selectedText,
+    contextBefore: contextBefore,
+    contextAfter: contextAfter,
+    fullContext: fullContext
   };
 }
 
@@ -450,7 +515,12 @@ function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
       }
       
       try {
-        const response = await analyzeText(aiPrompt, "", true);
+        // For prompts that need the selected text, replace the placeholder
+        const finalPrompt = aiPrompt.includes("${selectedText}") 
+          ? aiPrompt.replace("${selectedText}", lastSelectedText)
+          : aiPrompt;
+        
+        const response = await analyzeText(finalPrompt, "", true);
         
         // Remove "Typing..." bubble
         chatContainer.removeChild(thinkingMessage);
@@ -469,7 +539,7 @@ function createQuickPromptCallback(userMessage, aiPrompt, errorContext) {
 // Add click handlers using the helper function
 ruButton.addEventListener("click", createQuickPromptCallback(
   "Translate to Russian",
-  "Translate inital user text to good everyday natural Russian. Answer in Russian only without extra comments.",
+  `Translate "\${selectedText}" into good everyday natural Russian. Just the russian translation, no extra comments.`,
   "Russian translation"
 ));
 
@@ -487,7 +557,7 @@ expandButton.addEventListener("click", createQuickPromptCallback(
 
 culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
   "Explain cultural background",
-  "Explain cultural background. Interesting facts, history, etc.",
+  "Give short cultural and/or historical overview that would be interesting for me as an American",
   "Cultural background"
 ));
 

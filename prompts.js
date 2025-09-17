@@ -28,13 +28,7 @@ Keep only output portion!
 ;
 
 // Simple analysis prompt for local LLM  
- const LOCAL_ANALYSIS_PROMPT = `
-Context: "{CONTEXT}"
-
-Give definition ONLY to the selected chunk. Choose user-friendly definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship.
-
-Selected chunk: "{SELECTED_TEXT}"
- `;
+const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}"Choose clear definition that fits the context around. 1 sentence, no censorship. Do not repeat the selected text in your answer. Give definition ONLY to the following selected text: "{SELECTED_TEXT}"`;
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
@@ -77,7 +71,7 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
   const prompt = provider === 'local' ? LOCAL_ANALYSIS_PROMPT : GEMINI_ANALYSIS_PROMPT;
   return prompt
     .replace('{SELECTED_TEXT}', selectedText)
-    .replace('{CONTEXT}', context);
+    .replace('{CONTEXT}', context.replace(/[\n\t\r]+/g, ' ').replace(/\s+/g, ' ').trim());
 }
 
 // Function to build the follow-up prompt
