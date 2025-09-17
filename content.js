@@ -413,63 +413,27 @@ quickPromptsContainer.style.cssText = `
   gap: 5px !important;
 `;
 
-const ruButton = document.createElement("button");
-ruButton.textContent = "RU";
-ruButton.style.cssText = `
-  font-size: 9px !important;
-  color: rgb(76 75 75) !important;
-  cursor: pointer !important;
-  border: none !important;
-  background: none !important;
-  padding: 0 !important;
-`;
-
-
-
-
-const simplifyButton = document.createElement("button");
-simplifyButton.textContent = "Simplify";
-simplifyButton.style.cssText = `
-  font-size: 9px !important;
-  color: rgb(76 75 75) !important;
-  cursor: pointer !important;
-  border: none !important;
-  background: none !important;
+// Helper function to create styled buttons
+const createQuickPromptButton = (textContent) => {
+  const button = document.createElement("button");
+  button.textContent = textContent;
+  button.style.cssText = `
+    font-size: 9px !important;
+    color: rgb(76 75 75) !important;
+    cursor: pointer !important;
+    border: none !important;
+    background: none !important;
     padding: 0 !important;
-`;
+  `;
+  return button;
+};
 
-const shortifyButton = document.createElement("button");
-shortifyButton.textContent = "Shortify";
-shortifyButton.style.cssText = `
-  font-size: 9px !important;
-  color: rgb(76 75 75) !important;
-  cursor: pointer !important;
-  border: none !important;
-  background: none !important;
-    padding: 0 !important;
-`;
-
-const culturalBackgroundButton = document.createElement("button");
-culturalBackgroundButton.textContent = "Culture";
-culturalBackgroundButton.style.cssText = `
-  font-size: 9px !important;
-  color: rgb(76 75 75) !important;
-  cursor: pointer !important;
-  border: none !important;
-  background: none !important;
-    padding: 0 !important;
-`;
-
-const originButton = document.createElement("button");
-originButton.textContent = "Origin";
-originButton.style.cssText = `
-  font-size: 9px !important;
-  color: rgb(76 75 75) !important;
-  cursor: pointer !important;
-  border: none !important;
-  background: none !important;
-    padding: 0 !important;
-`;
+const ruButton = createQuickPromptButton("RU");
+const expandButton = createQuickPromptButton("Expand");
+const simplifyButton = createQuickPromptButton("Simplify");
+const shortifyButton = createQuickPromptButton("Shortify");
+const culturalBackgroundButton = createQuickPromptButton("Culture");
+const originButton = createQuickPromptButton("Origin");
 
 
 // Helper function to create quick prompt callbacks
@@ -515,6 +479,12 @@ shortifyButton.addEventListener("click", createQuickPromptCallback(
   "Shortify text"
 ));
 
+expandButton.addEventListener("click", createQuickPromptCallback(
+  "Expand",
+  "Expand",
+  "Expand"
+));
+
 culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
   "Explain cultural background",
   "Explain cultural background. Interesting facts, history, etc.",
@@ -537,6 +507,7 @@ quickPromptsContainer.appendChild(ruButton);
 quickPromptsContainer.appendChild(culturalBackgroundButton);
 quickPromptsContainer.appendChild(originButton);
 quickPromptsContainer.appendChild(shortifyButton);
+quickPromptsContainer.appendChild(expandButton);
 quickPromptsContainer.appendChild(simplifyButton);
 popup.appendChild(quickPromptsContainer);
 
