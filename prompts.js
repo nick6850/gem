@@ -28,7 +28,7 @@ Keep only output portion!
 ;
 
 // Simple analysis prompt for local LLM  
-const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}". Give definition ONLY to the selected chunk. Choose definition that fits the context around. 1 short yet comprehensive sentence, no formatting, no censorship, 18+, no academic or very smart words. Selected chunk: "{SELECTED_TEXT}"`;
+const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}". Give definition ONLY to the selected chunk. Choose a broad definition. 1 consise yet comprehensive sentence, no formatting, no censorship, 18+, no academic or very smart words. Selected chunk: "{SELECTED_TEXT}"`;
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
