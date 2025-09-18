@@ -494,6 +494,7 @@ const createQuickPromptButton = (textContent) => {
 };
 
 const ruButton = createQuickPromptButton("RU");
+const exampleButton = createQuickPromptButton("Example");
 const expandButton = createQuickPromptButton("Expand");
 const simplifyButton = createQuickPromptButton("Simplify");
 const shortifyButton = createQuickPromptButton("Shortify");
@@ -543,11 +544,18 @@ ruButton.addEventListener("click", createQuickPromptCallback(
   "Russian translation"
 ));
 
+exampleButton.addEventListener("click", createQuickPromptCallback(
+  "Use it in a sentence",
+  "Use it in a sentence",
+  "Use it in a sentence"
+));
+
 shortifyButton.addEventListener("click", createQuickPromptCallback(
   "Make it shorter",
   "A little shorter",
   "Shortify text"
 ));
+
 
 expandButton.addEventListener("click", createQuickPromptCallback(
   "Expand",
@@ -574,6 +582,7 @@ simplifyButton.addEventListener("click", createQuickPromptCallback(
 ));
 
 quickPromptsContainer.appendChild(ruButton);
+quickPromptsContainer.appendChild(exampleButton);
 quickPromptsContainer.appendChild(culturalBackgroundButton);
 quickPromptsContainer.appendChild(originButton);
 quickPromptsContainer.appendChild(shortifyButton);
@@ -1051,7 +1060,7 @@ document.addEventListener("click", (event) => {
 // Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
 document.addEventListener('keydown', function(event) {
   // Check for Ctrl+Shift+P or Cmd+Shift+P
-  if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'E') {
+  if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
     event.preventDefault();
     event.stopPropagation();
 
