@@ -396,7 +396,7 @@ if (window.location.hostname.includes('youtube.com') || window.location.hostname
       touch-action: manipulation !important;
     }
 
-    .caption-window {
+    .caption-window.ytp-caption-window-rollup {
       left: 36% !important;
     }
   `;
@@ -440,6 +440,7 @@ if (window.location.hostname.includes('youtube.com') || window.location.hostname
     // Prevent the event from bubbling up to parent elements
     e.stopPropagation();
   }
+
 
   // Add global event handlers to subtitle containers
   function setupSubtitleEventHandlers() {
