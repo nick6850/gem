@@ -37,6 +37,54 @@ function getContextAroundSelection() {
       .trim();
   }
   
+  // Special handling for YouTube to avoid navigation elements
+  if (!pageText && (window.location.hostname.includes('youtube.com') || window.location.hostname.includes('youtu.be'))) {
+    // Try to get text from main content areas, avoiding navigation
+    const contentSelectors = [
+      '#primary-inner', // Main content area
+      '#secondary-inner', // Sidebar content
+      '.ytd-watch-flexy', // Watch page content
+      '#description', // Video description
+      '.ytp-caption-window-container', // Subtitle container
+      '.html5-video-container' // Video container area
+    ];
+    
+    const contentElements = [];
+    contentSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => contentElements.push(el));
+    });
+    
+    if (contentElements.length > 0) {
+      pageText = contentElements
+        .map(el => el.innerText || el.textContent)
+        .join(' ')
+        .trim();
+      
+      // Filter out common YouTube navigation elements
+      const navigationPatterns = [
+        /Skip navigation/gi,
+        /Create\s+\d+:\d+\s*\/\s*\d+:\d+/gi,
+        /\d+:\d+\s*\/\s*\d+:\d+\s*\/\s*\d+:\d+\s+left/gi,
+        /Subscribe\s+\d+/gi,
+        /\d+\s+views/gi,
+        /\d+\s+likes/gi,
+        /Share\s+Download\s+Clip\s+Save/gi,
+        /Comments\s+\d+/gi,
+        /Sort by/gi,
+        /Top comments/gi,
+        /Newest first/gi
+      ];
+      
+      navigationPatterns.forEach(pattern => {
+        pageText = pageText.replace(pattern, '');
+      });
+      
+      // Clean up extra whitespace
+      pageText = pageText.replace(/\s+/g, ' ').trim();
+    }
+  }
+  
   // Fallback to document body for regular pages and other PDF viewers
   if (!pageText && document.body) {
     pageText = document.body.innerText.trim();
@@ -58,6 +106,24 @@ function getContextAroundSelection() {
 
     // Proceed only if there is selected text
     if (selectedText) {
+      // For YouTube subtitle selections, try to get context only from subtitle area
+      const isYouTube = window.location.hostname.includes('youtube.com') || window.location.hostname.includes('youtu.be');
+      const isSubtitleSelection = isYouTube && (
+        range.commonAncestorContainer.closest?.('.ytp-caption-window-container') ||
+        range.startContainer.parentElement?.closest?.('.ytp-caption-window-container') ||
+        range.endContainer.parentElement?.closest?.('.ytp-caption-window-container')
+      );
+
+      if (isSubtitleSelection) {
+        // For subtitle selections, use minimal context - just the subtitle text
+        const subtitleContainer = document.querySelector('.ytp-caption-window-container');
+        if (subtitleContainer) {
+          pageText = subtitleContainer.innerText || subtitleContainer.textContent || '';
+          // Clean up any remaining navigation elements
+          pageText = pageText.replace(/Skip navigation/gi, '').replace(/Create\s+\d+:\d+/gi, '').trim();
+        }
+      }
+
       // Create start and end marker elements with essential spaces
       const markerStart = document.createElement("span");
       markerStart.textContent = " <<<SELECTED>>> ";
@@ -77,8 +143,16 @@ function getContextAroundSelection() {
       endRange.collapse(false); // Collapse to the end of the range
       endRange.insertNode(markerEnd);
 
-      // Update the pageText to include the markers
-      pageText = document.body.innerText.trim();
+      // Update the pageText to include the markers, but only if not already set for subtitles
+      if (!isSubtitleSelection) {
+        pageText = document.body.innerText.trim();
+      } else {
+        // For subtitle selections, re-get the text with markers
+        const subtitleContainer = document.querySelector('.ytp-caption-window-container');
+        if (subtitleContainer) {
+          pageText = subtitleContainer.innerText || subtitleContainer.textContent || '';
+        }
+      }
 
       // Remove the markers from the DOM to clean up
       markerStart.remove();
@@ -532,6 +606,7 @@ const createQuickPromptButton = (textContent) => {
 };
 
 const ruButton = createQuickPromptButton("RU");
+const contextButton = createQuickPromptButton("Context");
 const exampleButton = createQuickPromptButton("Example");
 const expandButton = createQuickPromptButton("Expand");
 const simplifyButton = createQuickPromptButton("Simplify");
@@ -582,6 +657,12 @@ ruButton.addEventListener("click", createQuickPromptCallback(
   "Russian translation"
 ));
 
+contextButton.addEventListener("click", createQuickPromptCallback(
+  "What does it mean in this context?",
+  "What does it mean in this context?",
+  "What does it mean in this context?"
+))
+
 exampleButton.addEventListener("click", createQuickPromptCallback(
   "Use it in a sentence",
   "Use it in a sentence",
@@ -620,6 +701,7 @@ simplifyButton.addEventListener("click", createQuickPromptCallback(
 ));
 
 quickPromptsContainer.appendChild(ruButton);
+quickPromptsContainer.appendChild(contextButton);
 quickPromptsContainer.appendChild(exampleButton);
 quickPromptsContainer.appendChild(culturalBackgroundButton);
 quickPromptsContainer.appendChild(originButton);
