@@ -395,6 +395,10 @@ if (window.location.hostname.includes('youtube.com') || window.location.hostname
       user-drag: none !important;
       touch-action: manipulation !important;
     }
+
+    .caption-window {
+      left: 36% !important;
+    }
   `;
   document.head.appendChild(subtitleStyle);
 
