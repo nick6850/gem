@@ -7,6 +7,10 @@ let conversationHistory = [];
 // Current LLM provider: 'local' or 'gemini'
 let currentLLMProvider = 'local';
 
+// == Context Configuration ==
+// Number of sentences to extract (current + previous sentences)
+let sentenceContextCount = 2;
+
 
 // Wrapper function that routes to the appropriate LLM
 async function analyzeText(selectedText, context, isFollowUp = false) {
@@ -110,37 +114,71 @@ function tryExtractSentenceContext(pageText, selectedText) {
     return null;
   }
 
-  // Find the start of the sentence containing the selection
-  // Look backwards from the start marker to find the beginning of the sentence
-  let sentenceStart = 0; // Default to beginning of text
+  // Find the start of the current sentence (sentence containing the selection)
+  let currentSentenceStart = 0;
   for (let i = startMarkerIndex - 1; i >= 0; i--) {
     const char = pageText[i];
     if (char === '.' || char === '!' || char === '?') {
-      // Found end of previous sentence, our sentence starts after this
-      sentenceStart = i + 1;
+      currentSentenceStart = i + 1;
       break;
     }
   }
 
-  // Find the end of the sentence containing the selection
-  // Look forwards from the end marker to find the end of the sentence
-  let sentenceEnd = endMarkerIndex;
+  // Find the end of the current sentence
+  let currentSentenceEnd = pageText.length;
   for (let i = endMarkerIndex; i < pageText.length; i++) {
     const char = pageText[i];
     if (char === '.' || char === '!' || char === '?') {
-      // Found end of sentence
-      sentenceEnd = i + 1;
+      currentSentenceEnd = i + 1;
       break;
     }
   }
+
+  // Find the start position for the desired number of sentences
+  let contextStart = currentSentenceStart;
   
-  // If we didn't find a sentence ending, use end of text
-  if (sentenceEnd === endMarkerIndex) {
-    sentenceEnd = pageText.length;
+  if (sentenceContextCount > 1 && currentSentenceStart > 0) {
+    // We need more than just the current sentence, find previous sentences
+    let sentencesFound = 1; // We already have the current sentence
+    let searchPosition = currentSentenceStart;
+    
+    while (sentencesFound < sentenceContextCount && searchPosition > 0) {
+      // Look backwards to find the end of the previous sentence
+      let foundSentenceEnd = false;
+      for (let i = searchPosition - 1; i >= 0; i--) {
+        const char = pageText[i];
+        if (char === '.' || char === '!' || char === '?') {
+          // Found end of a sentence, now find its start
+          for (let j = i - 1; j >= 0; j--) {
+            const prevChar = pageText[j];
+            if (prevChar === '.' || prevChar === '!' || prevChar === '?') {
+              // Found start of this sentence
+              searchPosition = j + 1;
+              sentencesFound++;
+              foundSentenceEnd = true;
+              break;
+            }
+          }
+          if (!foundSentenceEnd) {
+            // No previous sentence start found, use beginning of text
+            searchPosition = 0;
+            sentencesFound++;
+            foundSentenceEnd = true;
+          }
+          break;
+        }
+      }
+      if (!foundSentenceEnd) {
+        // No more sentences found, stop
+        break;
+      }
+    }
+    
+    contextStart = searchPosition;
   }
 
-  // Extract the sentence containing the selected text
-  const fullContext = pageText.substring(sentenceStart, sentenceEnd).trim();
+  // Extract context with the desired number of sentences
+  const fullContext = pageText.substring(contextStart, currentSentenceEnd).trim();
 
   // Clean up markers from the context
   const cleanFullContext = fullContext.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, '');
