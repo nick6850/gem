@@ -46,11 +46,11 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
   try {
     const requestBody = {
       model: "deepseek-llm-7b-chat",
-      messages: messages, 
+      messages: messages,
       temperature: 0,
-      max_tokens: 100, 
+      max_tokens: 200,
       stream: false,
-    };
+  };
 
     console.log(
       "Sending request to local LLM:",
