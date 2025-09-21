@@ -28,7 +28,7 @@ Keep only output portion!
 ;
 
 // Simple analysis prompt for local LLM  
-const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}". Give definition ONLY to the selected chunk. Pick the meaning that best conveys what it actually means here, but phrase it in a general, not overly context-specific way. Use 1 concise, complete sentence. No formatting, casual tone. Selected chunk: "{SELECTED_TEXT}"`;
+const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}". Selected chunk: "{SELECTED_TEXT}". Give a suitable definition to the selected chunk. Do not include specifics from the context in your answer. 1 short user-friendly sentence, direct meaning, very consise, no formatting, 18+.`
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
