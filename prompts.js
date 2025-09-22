@@ -28,7 +28,7 @@ Keep only output portion!
 ;
 
 // Simple analysis prompt for local LLM  
-const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}". SELECTED PART: "{SELECTED_TEXT}". Give an accurate definition JUST and ONLY to the SELECTED PART. Do not mention details if they are not INCLUDED in the SELECTED PART. One sentence, natural phrasing, no formatting.`
+const LOCAL_ANALYSIS_PROMPT = `Context: "{CONTEXT}". Give an accurate definition JUST and ONLY to the SELECTED PART as if it was used STANDALONE. One sentence, natural broad phrasing, no formatting. SELECTED PART: "{SELECTED_TEXT}".`
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
