@@ -9,7 +9,7 @@ let currentLLMProvider = 'local';
 
 // == Context Configuration ==
 // Number of sentences to extract (current + previous sentences)
-let sentenceContextCount = 1;
+let sentenceContextCount = 2;
 
 
 // Wrapper function that routes to the appropriate LLM
