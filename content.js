@@ -208,15 +208,28 @@ function tryExtractSentenceContext(pageText, selectedText) {
     }
   }
 
+  // Check if we need more sentences due to short context
+  let actualSentenceCount = sentenceContextCount;
+  if (sentenceContextCount === 1) {
+    // For single sentence, check if it's too short and add one more before if needed
+    const currentSentenceText = pageText.substring(currentSentenceStart, currentSentenceEnd).trim();
+    const cleanCurrentSentence = currentSentenceText.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, '');
+    const wordCount = cleanCurrentSentence.trim().split(/\s+/).length;
+    
+    if (wordCount <= 3) {
+      actualSentenceCount = 2;
+    }
+  }
+
   // Find the start position for the desired number of sentences
   let contextStart = currentSentenceStart;
   
-  if (sentenceContextCount > 1 && currentSentenceStart > 0) {
+  if (actualSentenceCount > 1 && currentSentenceStart > 0) {
     // We need more than just the current sentence, find previous sentences
     let sentencesFound = 1; // We already have the current sentence
     let searchPosition = currentSentenceStart;
     
-    while (sentencesFound < sentenceContextCount && searchPosition > 0) {
+    while (sentencesFound < actualSentenceCount && searchPosition > 0) {
       // Look backwards to find the end of the previous sentence
       let foundSentenceEnd = false;
       for (let i = searchPosition - 1; i >= 0; i--) {
@@ -251,7 +264,7 @@ function tryExtractSentenceContext(pageText, selectedText) {
     contextStart = searchPosition;
   }
 
-  // Extract context with the desired number of sentences
+  // Extract context with the actual number of sentences
   const fullContext = pageText.substring(contextStart, currentSentenceEnd).trim();
 
   // Clean up markers from the context
@@ -828,6 +841,29 @@ function addMessage(text, isAI = false) {
   return messageDiv;
 }
 
+// Helper to sanitize and keep only the first sentence from a text
+function removeSecondSentence(text) {
+  try {
+    // Normalize whitespace (including newlines) to single spaces
+    let normalized = (text || '').replace(/\s+/g, ' ').trim();
+    // Remove all quotes (straight and curly)
+    normalized = normalized.replace(/["'“”‘’«»„‟‹›]/g, '');
+    // Remove any character that is not a letter, number, space, comma, period, or dash (including unicode dashes)
+    normalized = normalized.replace(/[^\p{L}\p{N}\s\.,-\u2010-\u2015]/gu, '');
+    // Collapse spaces again after removals
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+
+    // Keep only the first sentence (up to the first period)
+    const periodIndex = normalized.indexOf('.');
+    let first = periodIndex !== -1 ? normalized.slice(0, periodIndex + 1) : normalized;
+    // Clean leading/trailing commas/spaces
+    first = first.replace(/^[,\s]+/, '').replace(/[\s,]+$/, '');
+    return first || normalized;
+  } catch (_) {
+    return text;
+  }
+}
+
 /////////////////////////////////////////////////////////////
 // == Helper to center the popup (currently used in code) ==
 /////////////////////////////////////////////////////////////
@@ -1018,7 +1054,7 @@ document.addEventListener("keydown", async (e) => {
         chatContainer.innerHTML = "";
 
         addMessage(originalText, false);
-        addMessage(analysis, true);
+        addMessage(removeSecondSentence(analysis), true);
 
         positionPopup();
       } catch (error) {
@@ -1095,7 +1131,7 @@ floatingButton.addEventListener("click", async (e) => {
       chatContainer.innerHTML = "";
 
       addMessage(originalText, false);
-      addMessage(analysis, true);
+      addMessage(removeSecondSentence(analysis), true);
 
       positionPopup();
     } catch (error) {
