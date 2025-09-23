@@ -12,14 +12,37 @@ let currentLLMProvider = 'local';
 let sentenceContextCount = 1;
 
 
-// Wrapper function that routes to the appropriate LLM
+// Wrapper function that routes to the appropriate LLM with fallback
 async function analyzeText(selectedText, context, isFollowUp = false) {
-  if (currentLLMProvider === 'local') {
-    return await analyzeWithLocalLLM(selectedText, context, isFollowUp);
-  } else if (currentLLMProvider === 'gemini') {
-    return await analyzeWithGeminiLLM(selectedText, context, isFollowUp);
-  } else {
-    throw new Error(`Unknown LLM provider: ${currentLLMProvider}`);
+  const originalProvider = currentLLMProvider;
+  
+  try {
+    // Try the current LLM provider first
+    if (currentLLMProvider === 'local') {
+      return await analyzeWithLocalLLM(selectedText, context, isFollowUp);
+    } else if (currentLLMProvider === 'gemini') {
+      return await analyzeWithGeminiLLM(selectedText, context, isFollowUp);
+    } else {
+      throw new Error(`Unknown LLM provider: ${currentLLMProvider}`);
+    }
+  } catch (error) {
+    console.warn(`${originalProvider} LLM failed, trying fallback:`, error);
+    
+    // Try the alternate LLM provider as fallback
+    try {
+      const fallbackProvider = originalProvider === 'local' ? 'gemini' : 'local';
+      console.log(`Falling back to ${fallbackProvider} LLM`);
+      
+      if (fallbackProvider === 'local') {
+        return await analyzeWithLocalLLM(selectedText, context, isFollowUp);
+      } else {
+        return await analyzeWithGeminiLLM(selectedText, context, isFollowUp);
+      }
+    } catch (fallbackError) {
+      console.error(`Both LLM providers failed. Original error:`, error, `Fallback error:`, fallbackError);
+      // Throw the original error since that was the primary attempt
+      throw new Error(`Both ${originalProvider} and fallback LLM failed. Primary error: ${error.message}`);
+    }
   }
 }
 
