@@ -48,7 +48,7 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
       model: "deepseek-llm-7b-chat",
       messages: messages,
       temperature: 0,
-      max_tokens: 200,
+      max_tokens: 10000,
       stream: false,
   };
 
