@@ -432,6 +432,10 @@ if (window.location.hostname.includes('youtube.com') || window.location.hostname
       touch-action: manipulation !important;
     }
 
+    .caption-window {
+      bottom: 0% !important;
+    }
+
     .caption-window.ytp-caption-window-rollup {
       left: 36% !important;
     }
@@ -642,6 +646,7 @@ const createQuickPromptButton = (textContent) => {
     border: none !important;
     background: none !important;
     padding: 0 !important;
+    font-weight: 400 !important;
   `;
   return button;
 };
