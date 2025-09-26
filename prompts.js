@@ -77,7 +77,7 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
     return `I am an English learner. Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
   }
   
-  if (selectedText.split(' ').length > 3 ){
+  if (selectedText.split(' ').length > 4 ){
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Never include details from the context that are not selected.`
   }
   
