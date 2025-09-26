@@ -31,7 +31,7 @@ Keep only output portion!
 
 
 // Simple analysis prompt for local LLM  
-const LOCAL_ANALYSIS_PROMPT = `Give a definition to the SELECTED CHUNK as if it was STANDALONE. Short sentence, general language, 18+ allowed.`
+const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to  as if it was STANDALONE. Short sentence, general language, 18+ allowed.`
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
@@ -71,10 +71,17 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
 
 // Function to build the analysis prompt with selectedText and context
 function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
-  const prompt = LOCAL_ANALYSIS_PROMPT
-  return `Context: "${context.replace(/[\n\t\r]+/g, ' ').replace(/\s+/g, ' ').trim()}"
-  SELECTED CHUNK: "${selectedText}"
-  `+ prompt;
+  context = context.replaceAll('\n', '').replaceAll('"', '').replaceAll("'", '').replaceAll('“', '').replaceAll('”', '').replaceAll('  ', ' ').replaceAll('  ', ' ').replace('\\', '')
+
+  if (selectedText.split(' ').length > 9 ){
+    return `I am an English learner. Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
+  }
+  
+  if (selectedText.split(' ').length > 3 ){
+    return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Never include details from the context that are not selected.`
+  }
+  
+   return `Context: "${context}". Give a definition to "${selectedText}" as if it was standalone. Do not intepret it as an idiom / expression unless whole idiom / expression is selected. 12 words max reply, general language, 18+ allowed.` ;
 }
 
 // Function to build the follow-up prompt
