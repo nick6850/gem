@@ -81,7 +81,7 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Never include details from the context that are not selected.`
   }
   
-   return `Context: "${context}". Give a definition to "${selectedText}" as if it was standalone. Do not intepret it as an idiom / expression unless whole idiom / expression is selected. 12 words max reply, general language, 18+ allowed.` ;
+   return `Context: "${context}". Give a definition to "${selectedText}" as if it was standalone. Do not interpret it as an idiom / expression unless whole idiom / expression is selected. 12 words max reply, general language, 18+ allowed.` ;
 }
 
 // Function to build the follow-up prompt
