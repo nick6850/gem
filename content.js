@@ -736,8 +736,8 @@ contextButton.addEventListener("click", createQuickPromptCallback(
 
 exampleButton.addEventListener("click", createQuickPromptCallback(
   "Use it in a sentence",
-  "Use it in a sentence",
-  "Use it in a sentence"
+  "Use it in another unrelated sentence with the same meaning.",
+  "Use it in another unrelated sentence with the same meaning."
 ));
 
 shortifyButton.addEventListener("click", createQuickPromptCallback(
