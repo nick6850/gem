@@ -874,10 +874,10 @@ function removeSecondSentence(text) {
   try {
     // Normalize whitespace (including newlines) to single spaces
     let normalized = (text || '').replace(/\s+/g, ' ').trim();
-    // Remove all quotes (straight and curly)
-    normalized = normalized.replace(/["'""''«»„‟‹›]/g, '');
-    // Remove any character that is not a letter, number, space, comma, period, apostrophe, semicolon, colon, or dash (including unicode dashes)
-    normalized = normalized.replace(/[^\p{L}\p{N}\s\.,';:-]/gu, '');
+    // Remove quotes but keep apostrophes
+    normalized = normalized.replace(/["""«»„‟‹›]/g, '');
+    // Remove any character that is not a letter, number, space, comma, period, apostrophe (straight and curly), semicolon, colon, or dash (including unicode dashes)
+    normalized = normalized.replace(/[^\p{L}\p{N}\s\.,'';:-]/gu, '');
     // Collapse spaces again after removals
     normalized = normalized.replace(/\s+/g, ' ').trim();
 
