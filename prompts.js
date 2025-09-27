@@ -74,14 +74,14 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
   context = context.replaceAll(/[\n"'""\\]/g, '').replaceAll(/\s+/g, ' ')
 
   if (selectedText.split(' ').length > 9 ){
-    return `I am an English learner. Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
+    return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
   }
   
-  if (selectedText.split(' ').length > 3 ){
-    return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Use simple terms. Never include details from the context that are not selected.`
+  if (selectedText.split(' ').length > 4 ){
+    return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Use simple terms. Never include details from the context that are not explicitly included in selected part. 18+ allowed`
   }
   
-   return `Context: "${context}". Give a definition to "${selectedText}" as if it was standalone. Do not interpret it as an idiom / expression unless whole idiom / expression is selected. 12 words max reply, general language, 18+ allowed.` ;
+  return `Context: "${context}". Give a definition to the word "${selectedText}" as if it was standalone. Do not interpret it as an idiom / expression unless whole idiom / expression selected. 12 tokens max reply, general language, 18+ allowed.`;
 }
 
 // Function to build the follow-up prompt
