@@ -77,11 +77,11 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
     return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
   }
   
-  if (selectedText.split(' ').length > 3 ){
+  if (selectedText.split(' ').length > 4 ){
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Use simple terms. Never include details from the context that are not explicitly included in selected part. 18+ allowed`
   }
   
-  return `Context: "${context}". Give a definition to the word "${selectedText}" as if it was standalone. Do not interpret it as an idiom / expression unless whole idiom / expression selected. 12 tokens max reply, general language, 18+ allowed.`;
+  return `Context: "${context}". Give a generic definition ONLY to the word "${selectedText}" (as if it was standalone). Do not repeat it. Never interpret as phrase unless entire phrase is selected. Context is only for disambiguation, never include context elements in your definition. Your definition must not reveal what the context was about. Short sentence, no verbosity, natural language, 18+ allowed.`;
 }
 
 // Function to build the follow-up prompt
