@@ -125,7 +125,32 @@ function getContextAroundSelection() {
   if (selection.rangeCount) {
     // Get the first range of the selection
     const range = selection.getRangeAt(0);
-    const selectedText = range.toString().trim();
+    // Better text extraction that adds spaces between different elements
+    const selectedText = (() => {
+      const contents = range.cloneContents();
+      let text = '';
+      
+      function extractText(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          text += node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          // Add space before each element (except first)
+          if (text && !text.endsWith(' ')) {
+            text += ' ';
+          }
+          for (let child of node.childNodes) {
+            extractText(child);
+          }
+        }
+      }
+      
+      for (let child of contents.childNodes) {
+        extractText(child);
+      }
+      
+      // Clean up whitespace but preserve single spaces between words
+      return text.replace(/\s+/g, ' ').trim();
+    })();
 
     // Proceed only if there is selected text
     if (selectedText) {
