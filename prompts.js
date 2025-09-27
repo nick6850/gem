@@ -73,9 +73,9 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
 function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
   context = context.replaceAll(/[\n"'""\\]/g, '').replaceAll(/\s+/g, ' ')
 
-  if (selectedText.split(' ').length > 9 ){
-    return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
-  }
+  // if (selectedText.split(' ').length > 9 ){
+  //   return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
+  // }
   
   if (selectedText.split(' ').length > 3 ){
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase the selected part in simpler terms. Do not omit anything from selected part. Focus ON the selected part ONLY. Never include context details in your paraphrasal. You must not reveal what the context was about. 18+ allowed.`
