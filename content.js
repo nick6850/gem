@@ -897,6 +897,10 @@ function removeSecondSentence(text) {
     // Clean leading/trailing commas/spaces
     result = result.replace(/^[,\s]+/, '').replace(/[\s,]+$/, '');
     
+    // Remove repetitive definition pattern (word: definition)
+    const definitionPattern = /^[^:]+:\s*/;
+    result = result.replace(definitionPattern, '');
+    
     // Handle semicolons: split, capitalize second part, replace with period
     if (result && result.includes(';')) {
       const parts = result.split(';');
