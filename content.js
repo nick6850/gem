@@ -875,18 +875,53 @@ function removeSecondSentence(text) {
     // Normalize whitespace (including newlines) to single spaces
     let normalized = (text || '').replace(/\s+/g, ' ').trim();
     // Remove all quotes (straight and curly)
-    normalized = normalized.replace(/["'“”‘’«»„‟‹›]/g, '');
+    normalized = normalized.replace(/["'""''«»„‟‹›]/g, '');
     // Remove any character that is not a letter, number, space, comma, period, or dash (including unicode dashes)
     normalized = normalized.replace(/[^\p{L}\p{N}\s\.,-\u2010-\u2015]/gu, '');
     // Collapse spaces again after removals
     normalized = normalized.replace(/\s+/g, ' ').trim();
 
-    // Keep only the first sentence (up to the first period)
-    const periodIndex = normalized.indexOf('.');
-    let first = periodIndex !== -1 ? normalized.slice(0, periodIndex + 1) : normalized;
+    // Look for sentence-ending patterns: period followed by space and capital letter
+    const sentenceEndPattern = /\.\s+[A-Z]/;
+    const match = normalized.match(sentenceEndPattern);
+    
+    let result;
+    if (match) {
+      const periodIndex = normalized.indexOf(match[0]);
+      result = normalized.slice(0, periodIndex + 1);
+    } else {
+      // Fallback: return the whole text if no clear sentence boundary found
+      result = normalized;
+    }
+    
     // Clean leading/trailing commas/spaces
-    first = first.replace(/^[,\s]+/, '').replace(/[\s,]+$/, '');
-    return first || normalized;
+    result = result.replace(/^[,\s]+/, '').replace(/[\s,]+$/, '');
+    
+    // Handle semicolons: split, capitalize second part, replace with period
+    if (result && result.includes(';')) {
+      const parts = result.split(';');
+      if (parts.length === 2) {
+        const firstPart = parts[0].trim();
+        const secondPart = parts[1].trim();
+        if (secondPart.length > 0) {
+          result = firstPart + '. ' + secondPart.charAt(0).toUpperCase() + secondPart.slice(1);
+        } else {
+          result = firstPart + '.';
+        }
+      }
+    }
+    
+    // Capitalize first letter
+    if (result && result.length > 0) {
+      result = result.charAt(0).toUpperCase() + result.slice(1);
+    }
+    
+    // Add period if no ending punctuation
+    if (result && !/[.!?]$/.test(result)) {
+      result += '.';
+    }
+    
+    return result;
   } catch (_) {
     return text;
   }

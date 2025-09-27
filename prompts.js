@@ -71,7 +71,7 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
 
 // Function to build the analysis prompt with selectedText and context
 function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
-  context = context.replaceAll('\n', '').replaceAll('"', '').replaceAll("'", '').replaceAll('“', '').replaceAll('”', '').replaceAll('  ', ' ').replaceAll('  ', ' ').replace('\\', '')
+  context = context.replaceAll(/[\n"'""\\]/g, '').replaceAll(/\s+/g, ' ')
 
   if (selectedText.split(' ').length > 9 ){
     return `I am an English learner. Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
