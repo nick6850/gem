@@ -77,7 +77,7 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
     return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
   }
   
-  if (selectedText.split(' ').length > 4 ){
+  if (selectedText.split(' ').length > 3 ){
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Use simple terms. Never include details from the context that are not explicitly included in selected part. 18+ allowed`
   }
   
