@@ -876,8 +876,8 @@ function removeSecondSentence(text) {
     let normalized = (text || '').replace(/\s+/g, ' ').trim();
     // Remove all quotes (straight and curly)
     normalized = normalized.replace(/["'""''«»„‟‹›]/g, '');
-    // Remove any character that is not a letter, number, space, comma, period, apostrophe, semicolon, or dash (including unicode dashes)
-    normalized = normalized.replace(/[^\p{L}\p{N}\s\.,';-]/gu, '');
+    // Remove any character that is not a letter, number, space, comma, period, apostrophe, semicolon, colon, or dash (including unicode dashes)
+    normalized = normalized.replace(/[^\p{L}\p{N}\s\.,';:-]/gu, '');
     // Collapse spaces again after removals
     normalized = normalized.replace(/\s+/g, ' ').trim();
 
@@ -898,8 +898,8 @@ function removeSecondSentence(text) {
     result = result.replace(/^[,\s]+/, '').replace(/[\s,]+$/, '');
     
     // Remove repetitive definition pattern (word: definition)
-    const definitionPattern = /^[^:]+:\s*/;
-    result = result.replace(definitionPattern, '');
+    const definitionPattern = /^[A-Za-z\s]+:\s*/;
+    result = result.replace(definitionPattern, '').trim();
     
     // Handle semicolons: split, capitalize second part, replace with period
     if (result && result.includes(';')) {
