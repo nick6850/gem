@@ -730,44 +730,44 @@ ruButton.addEventListener("click", createQuickPromptCallback(
 
 contextButton.addEventListener("click", createQuickPromptCallback(
   "What does it mean in this context?",
-  "What does it mean in this context?",
+  "What does it mean in this context in 1 sentence?",
   "What does it mean in this context?"
 ))
 
 exampleButton.addEventListener("click", createQuickPromptCallback(
   "Use it in a sentence",
-  "Use it in another unrelated sentence with the same meaning.",
+  "Use it in another unrelated sentence with the same meaning in 1 sentence.",
   "Use it in another unrelated sentence with the same meaning."
 ));
 
 shortifyButton.addEventListener("click", createQuickPromptCallback(
   "Make it shorter",
-  "A little shorter",
+  "A little shorter in 1 sentence",
   "Shortify text"
 ));
 
 
 expandButton.addEventListener("click", createQuickPromptCallback(
   "Expand",
-  "Expand",
+  "Give more info. Use 1 sentence.",
   "Expand"
 ));
 
 culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
   "Explain cultural background",
-  "Give short cultural and/or historical overview that would be interesting for me as an American",
+  "Give short cultural and/or historical overview that would be interesting for me as an American. Use 1 sentence.",
   "Cultural background"
 ));
 
 originButton.addEventListener("click", createQuickPromptCallback(
   "What is the origin of the text?",
-  "Why does it mean what it means? What does it originate from?",
+  "Why does it mean what it means? What does it originate from? In 1 sentence.",
   "Origin of the text"
 ));
 
 simplifyButton.addEventListener("click", createQuickPromptCallback(
   "Explain in simpler terms",
-  "Explain this in simpler, easier to understand terms. No metaphors",
+  "Explain this in simpler, easier to understand terms. No metaphors. In 1 sentence.",
   "Simpler explanation"
 ));
 
