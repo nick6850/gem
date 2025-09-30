@@ -630,7 +630,7 @@ popup.style.cssText = `
   border-radius: 8px !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
   width: 270px !important;
-  z-index: 999 !important; 
+  z-index: 10001 !important; 
   display: none !important;
   color: #333 !important;
   overflow: auto !important;
@@ -638,6 +638,29 @@ popup.style.cssText = `
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
 `;
+
+// Create an overlay to block all page interactions when popup is open
+const overlay = document.createElement("div");
+overlay.className = "popup-overlay my-ai-helper-extension";
+overlay.style.cssText = `
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: transparent !important;
+  z-index: 10000 !important;
+  display: none !important;
+  pointer-events: auto !important;
+`;
+document.body.appendChild(overlay);
+
+// Handle clicks on the overlay to close popup
+overlay.addEventListener("click", (event) => {
+  popup.style.display = "none";
+  overlay.style.display = "none";
+  conversationHistory = [];
+});
 
 // Create chat container
 const chatContainer = document.createElement("div");
@@ -973,6 +996,7 @@ function positionPopup() {
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
   popup.style.display = "block";
+  overlay.style.display = "block";
 }
 
 /////////////////////////////////////////////////////////////
@@ -1120,6 +1144,7 @@ document.addEventListener("keydown", async (e) => {
       popup.style.left = `${left}px`;
       popup.style.top = `${top}px`;
       popup.style.display = "block";
+      overlay.style.display = "block";
 
       // Always start fresh - no restoration between popup sessions
       chatContainer.innerHTML = "";
@@ -1197,6 +1222,7 @@ floatingButton.addEventListener("click", async (e) => {
     popup.style.left = `${left}px`;
     popup.style.top = `${top}px`;
     popup.style.display = "block";
+    overlay.style.display = "block";
 
     // Always start fresh - no restoration between popup sessions
     chatContainer.innerHTML = "";
@@ -1296,19 +1322,103 @@ input.addEventListener("keypress", (e) => {
 /////////////////////////////////////////////////////////////
 // == Close popup when clicking outside or hide button ==
 /////////////////////////////////////////////////////////////
+
+// Function to block all events when popup is open (but allow popup interactions)
+function blockAllEvents(event) {
+  if (popup.style.display === "block") {
+    // Allow interactions within the popup itself
+    if (popup.contains(event.target)) {
+      return; // Don't block events within the popup
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    return false;
+  }
+}
+
+// Add comprehensive event blocking when popup is open
 document.addEventListener("click", (event) => {
-  // If click is outside the popup & the button, close the popup
-  if (!popup.contains(event.target) && !floatingButton.contains(event.target)) {
-    popup.style.display = "none";
-    // Clear conversation history when popup closes - no persistence
-    conversationHistory = [];
+  // If popup is open, prevent all page interactions
+  if (popup.style.display === "block") {
+    // Allow interactions within the popup itself
+    if (popup.contains(event.target)) {
+      return; // Don't block events within the popup
+    }
+    
+    // If click is outside the popup & the button, close the popup
+    if (!popup.contains(event.target) && !floatingButton.contains(event.target)) {
+      popup.style.display = "none";
+      overlay.style.display = "none";
+      // Clear conversation history when popup closes - no persistence
+      conversationHistory = [];
+    }
+    // Always prevent the event from affecting the page when popup is open
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    return false;
   }
 
   // If click is not on the floating button, hide it
   if (!floatingButton.contains(event.target)) {
     floatingButton.style.display = "none";
   }
-});
+}, true); // Use capture phase
+
+// Block all mouse events when popup is open
+document.addEventListener("mousedown", blockAllEvents, true);
+document.addEventListener("mouseup", blockAllEvents, true);
+document.addEventListener("mousemove", blockAllEvents, true);
+document.addEventListener("mouseover", blockAllEvents, true);
+document.addEventListener("mouseout", blockAllEvents, true);
+document.addEventListener("contextmenu", blockAllEvents, true);
+
+// Block all touch events when popup is open
+document.addEventListener("touchstart", blockAllEvents, true);
+document.addEventListener("touchend", blockAllEvents, true);
+document.addEventListener("touchmove", blockAllEvents, true);
+
+// Block all keyboard events when popup is open (except our shortcuts and popup interactions)
+document.addEventListener("keydown", (event) => {
+  if (popup.style.display === "block") {
+    // Allow interactions within the popup itself
+    if (popup.contains(event.target)) {
+      return; // Don't block keyboard events within the popup
+    }
+    
+    // Allow our keyboard shortcuts to work
+    const isCtrlZ = event.ctrlKey && event.key === "z";
+    const isCmdB = (event.metaKey || event.ctrlKey) && event.key === "b";
+    const isProviderSwitch = (event.ctrlKey || event.metaKey) && event.shiftKey && event.key === "p";
+    
+    if (!isCtrlZ && !isCmdB && !isProviderSwitch) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return false;
+    }
+  }
+}, true);
+
+// Block keyup and keypress events when popup is open (except within popup)
+document.addEventListener("keyup", (event) => {
+  if (popup.style.display === "block" && !popup.contains(event.target)) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    return false;
+  }
+}, true);
+
+document.addEventListener("keypress", (event) => {
+  if (popup.style.display === "block" && !popup.contains(event.target)) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    return false;
+  }
+}, true);
 
 // Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
 document.addEventListener('keydown', function(event) {
