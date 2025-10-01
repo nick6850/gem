@@ -105,7 +105,7 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part using everyday simple language. Never include details from the context that are not selected. Return just one sentence.`
   }
   
-  return `Context: "${context}". Give a general definition ONLY for the word "${selectedText}". Do not repeat it. Context is only for picking a suitable meaning. Never include context specifics in your definition. Your definition must not reveal what the context is about. Do not contaminate the definition with context details. Never interpret selected word as idiom/phrase unless entire idiom/phrase is selected. Short sentence, everyday language, 18+ allowed.`;
+  return `Context: "${context}". Give a general definition ONLY for the word "${selectedText}". Do not repeat it. Context is only for picking a slang-aware suitable meaning. Never include context specifics in your definition. Your definition must not reveal what the context is about. Do not contaminate the definition with context details. Never interpret selected word as idiom/phrase unless entire idiom/phrase is selected. Short sentence, everyday language, 18+ allowed.`;
 }
 
 // Function to build the follow-up prompt
