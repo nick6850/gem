@@ -24,14 +24,9 @@ Context: "I ask them from time to time about their progress."
 Your Output: **Definition:** Occasionally or every once in a while.
 
 Keep only output portion!
-`
-;
-
-
-
-
-// Simple analysis prompt for local LLM  
-const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to  as if it was STANDALONE. Short sentence, general language, 18+ allowed.`
+`;
+// Simple analysis prompt for local LLM
+const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to  as if it was STANDALONE. Short sentence, general language, 18+ allowed.`;
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
@@ -41,19 +36,23 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
   let prompt = "Conversation history:\n";
 
   conversationHistory.forEach((msg, index) => {
-    if (msg.role === 'system') {
+    if (msg.role === "system") {
       // Skip system messages in the conversation history display
       return;
-    } else if (msg.role === 'user' && index === 1) { // Index 1 because system is at index 0
+    } else if (msg.role === "user" && index === 1) {
+      // Index 1 because system is at index 0
       // Check if this is the initial user message with selected text and context
-      if (msg.content.includes('Selected text:') && msg.content.includes('Context:')) {
+      if (
+        msg.content.includes("Selected text:") &&
+        msg.content.includes("Context:")
+      ) {
         prompt += `User selected: ${msg.content}\n\n`;
       } else {
         prompt += `User selected: "${msg.content}"\n\n`;
       }
-    } else if (msg.role === 'assistant') {
+    } else if (msg.role === "assistant") {
       prompt += `Assistant: ${msg.content}\n\n`;
-    } else if (msg.role === 'user' && index > 1) {
+    } else if (msg.role === "user" && index > 1) {
       prompt += `User: ${msg.content}\n\n`;
     }
   });
@@ -70,50 +69,226 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
 }
 
 // Function to build the analysis prompt with selectedText and context
-function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
-  context = context.replaceAll(/[\n"'""\\]/g, '').replaceAll(/\s+/g, ' ')
+function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
+  context = context.replaceAll(/[\n"'""\\]/g, "").replaceAll(/\s+/g, " ");
 
   // if (selectedText.split(' ').length > 9 ){
   //   return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
   // }
 
-
   const utilityWords = [
     // Articles
-    'a', 'an', 'the',
+    "a",
+    "an",
+    "the",
     // Prepositions
-    'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'under', 'over', 'around', 'near', 'far', 'inside', 'outside', 'within', 'without', 'against', 'toward', 'towards', 'upon', 'across', 'behind', 'beyond', 'beside', 'besides', 'except', 'including', 'concerning', 'regarding', 'despite', 'throughout', 'amid', 'amidst', 'amongst',
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "by",
+    "from",
+    "up",
+    "about",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "among",
+    "under",
+    "over",
+    "around",
+    "near",
+    "far",
+    "inside",
+    "outside",
+    "within",
+    "without",
+    "against",
+    "toward",
+    "towards",
+    "upon",
+    "across",
+    "behind",
+    "beyond",
+    "beside",
+    "besides",
+    "except",
+    "including",
+    "concerning",
+    "regarding",
+    "despite",
+    "throughout",
+    "amid",
+    "amidst",
+    "amongst",
     // Pronouns
-    'i', 'me', 'my', 'myself', 'we', 'us', 'our', 'ourselves', 'you', 'your', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'this', 'that', 'these', 'those',
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "us",
+    "our",
+    "ourselves",
+    "you",
+    "your",
+    "yourself",
+    "yourselves",
+    "he",
+    "him",
+    "his",
+    "himself",
+    "she",
+    "her",
+    "hers",
+    "herself",
+    "it",
+    "its",
+    "itself",
+    "they",
+    "them",
+    "their",
+    "theirs",
+    "themselves",
+    "this",
+    "that",
+    "these",
+    "those",
     // Conjunctions
-    'and', 'or', 'but', 'so', 'yet', 'nor', 'for', 'because', 'since', 'although', 'though', 'if', 'unless', 'while', 'whereas', 'wherever', 'whenever', 'however', 'therefore', 'moreover', 'furthermore', 'nevertheless', 'nonetheless',
+    "and",
+    "or",
+    "but",
+    "so",
+    "yet",
+    "nor",
+    "for",
+    "because",
+    "since",
+    "although",
+    "though",
+    "if",
+    "unless",
+    "while",
+    "whereas",
+    "wherever",
+    "whenever",
+    "however",
+    "therefore",
+    "moreover",
+    "furthermore",
+    "nevertheless",
+    "nonetheless",
     // Common auxiliary verbs
-    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'will', 'would', 'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'ought',
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "having",
+    "do",
+    "does",
+    "did",
+    "doing",
+    "will",
+    "would",
+    "shall",
+    "should",
+    "can",
+    "could",
+    "may",
+    "might",
+    "must",
+    "ought",
     // Other common function words
-    'not', 'no', 'yes', 'very', 'quite', 'rather', 'some', 'any', 'all', 'both', 'each', 'every', 'either', 'neither', 'one', 'two', 'first', 'second', 'last', 'next', 'other', 'another', 'same', 'different', 'such', 'so', 'too', 'also', 'just', 'only', 'even', 'still', 'already', 'yet', 'again', 'here', 'there', 'where', 'when', 'why', 'how', 'what', 'who', 'which', 'whose', 'whom'
+    "not",
+    "no",
+    "yes",
+    "very",
+    "quite",
+    "rather",
+    "some",
+    "any",
+    "all",
+    "both",
+    "each",
+    "every",
+    "either",
+    "neither",
+    "one",
+    "two",
+    "first",
+    "second",
+    "last",
+    "next",
+    "other",
+    "another",
+    "same",
+    "different",
+    "such",
+    "so",
+    "too",
+    "also",
+    "just",
+    "only",
+    "even",
+    "still",
+    "already",
+    "yet",
+    "again",
+    "here",
+    "there",
+    "where",
+    "when",
+    "why",
+    "how",
+    "what",
+    "who",
+    "which",
+    "whose",
+    "whom",
   ];
-  
-  const words = selectedText.toLowerCase().split(/\s+/).filter(word => 
-    word.length > 0 && !utilityWords.includes(word)
-  );
 
-  if (words.length > 9 ){
-    return ` Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence.`
+  const words = selectedText
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word.length > 0 && !utilityWords.includes(word));
+
+  if (words.length > 9) {
+    return ` Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence.`;
   }
-  
-  if (words.length > 2 ){
-    return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part using everyday simple language. Never include details from the context that are not selected. Return just one sentence.`
+
+  if (words.length > 2) {
+    return `Context: "${context}". Selected: "${selectedText}". Paraphrase ONLY the selected text using different words. Keep the same meaning, tone, and level of formality. Do NOT add any details from the context that aren't in the selected text itself. Do NOT make it more formal or explicit. 1 sentence, everyday language.`;
   }
-  
+
   return `Context: "${context}". Give a general definition ONLY for the word "${selectedText}". Do not repeat it. Context is only for picking a slang-aware suitable meaning. Never include context specifics in your definition. Your definition must not reveal what the context is about. Do not contaminate the definition with context details. Never interpret selected word as idiom/phrase unless entire idiom/phrase is selected. Short sentence, everyday language, 18+ allowed.`;
 }
 
 // Function to build the follow-up prompt
-function buildFollowupPrompt(originalSelection, lastAssistantMessage, userQuestion) {
-  return FOLLOWUP_PROMPT
-    .replace('{ORIGINAL_SELECTION}', originalSelection || '')
-    .replace('{LAST_ASSISTANT_MESSAGE}', lastAssistantMessage || '')
-    .replace('{USER_QUESTION}', userQuestion || '');
+function buildFollowupPrompt(
+  originalSelection,
+  lastAssistantMessage,
+  userQuestion
+) {
+  return FOLLOWUP_PROMPT.replace(
+    "{ORIGINAL_SELECTION}",
+    originalSelection || ""
+  )
+    .replace("{LAST_ASSISTANT_MESSAGE}", lastAssistantMessage || "")
+    .replace("{USER_QUESTION}", userQuestion || "");
 }
 
 // Export functions and constants
