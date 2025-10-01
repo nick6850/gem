@@ -76,8 +76,28 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
   // if (selectedText.split(' ').length > 9 ){
   //   return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
   // }
+
+
+  const utilityWords = [
+    // Articles
+    'a', 'an', 'the',
+    // Prepositions
+    'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'under', 'over', 'around', 'near', 'far', 'inside', 'outside', 'within', 'without', 'against', 'toward', 'towards', 'upon', 'across', 'behind', 'beyond', 'beside', 'besides', 'except', 'including', 'concerning', 'regarding', 'despite', 'throughout', 'amid', 'amidst', 'amongst',
+    // Pronouns
+    'i', 'me', 'my', 'myself', 'we', 'us', 'our', 'ourselves', 'you', 'your', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'this', 'that', 'these', 'those',
+    // Conjunctions
+    'and', 'or', 'but', 'so', 'yet', 'nor', 'for', 'because', 'since', 'although', 'though', 'if', 'unless', 'while', 'whereas', 'wherever', 'whenever', 'however', 'therefore', 'moreover', 'furthermore', 'nevertheless', 'nonetheless',
+    // Common auxiliary verbs
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'will', 'would', 'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'ought',
+    // Other common function words
+    'not', 'no', 'yes', 'very', 'quite', 'rather', 'some', 'any', 'all', 'both', 'each', 'every', 'either', 'neither', 'one', 'two', 'first', 'second', 'last', 'next', 'other', 'another', 'same', 'different', 'such', 'so', 'too', 'also', 'just', 'only', 'even', 'still', 'already', 'yet', 'again', 'here', 'there', 'where', 'when', 'why', 'how', 'what', 'who', 'which', 'whose', 'whom'
+  ];
   
-  if (selectedText.split(' ').length > 2 ){
+  const words = selectedText.toLowerCase().split(/\s+/).filter(word => 
+    word.length > 0 && !utilityWords.includes(word)
+  );
+  
+  if (words.length > 2 ){
     return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Never include details from the context that are not selected.`
   }
   
