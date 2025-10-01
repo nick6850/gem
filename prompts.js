@@ -96,9 +96,13 @@ function buildAnalysisPrompt(selectedText, context, provider = 'gemini') {
   const words = selectedText.toLowerCase().split(/\s+/).filter(word => 
     word.length > 0 && !utilityWords.includes(word)
   );
+
+  if (words.length > 9 ){
+    return ` Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence.`
+  }
   
   if (words.length > 2 ){
-    return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part. Never include details from the context that are not selected.`
+    return `Context: "${context}". Selected part: "${selectedText}". Paraphrase ONLY the selected part using everyday simple language. Never include details from the context that are not selected. Return just one sentence.`
   }
   
   return `Context: "${context}". Give a general definition ONLY for the word "${selectedText}". Do not repeat it. Context is only for picking a suitable meaning. Never include context specifics in your definition. Your definition must not reveal what the context is about. Do not contaminate the definition with context details. Never interpret selected word as idiom/phrase unless entire idiom/phrase is selected. Short sentence, everyday language, 18+ allowed.`;
