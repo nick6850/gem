@@ -759,7 +759,7 @@ contextButton.addEventListener("click", createQuickPromptCallback(
 
 exampleButton.addEventListener("click", createQuickPromptCallback(
   "Use it in a sentence",
-  "Use it in another sentence.",
+  "Use it with the same meaning in another sentence.",
   "Use it in another sentence."
 ));
 
@@ -783,7 +783,7 @@ culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
 ));
 
 originButton.addEventListener("click", createQuickPromptCallback(
-  "What is the origin of the text?",
+  "Why does it mean that?",
   "Why does it mean what it means? What does it originate from? In 1 sentence.",
   "Origin of the text"
 ));
@@ -917,7 +917,8 @@ function addMessage(text, isAI = false) {
   return messageDiv;
 }
 
-// Helper to sanitize and keep only the first sentence from a text
+// COMMENTED OUT: Helper to sanitize and keep only the first sentence from a text
+// This function was cutting out all sentences after the first one in LLM responses
 function removeSecondSentence(text) {
   try {
     // Normalize whitespace (including newlines) to single spaces
@@ -1171,7 +1172,9 @@ document.addEventListener("keydown", async (e) => {
         chatContainer.innerHTML = "";
 
         addMessage(originalText, false);
-        addMessage(removeSecondSentence(analysis), true);
+        // COMMENTED OUT: Feature that cuts out all sentences after the first one
+        // addMessage(removeSecondSentence(analysis), true);
+        addMessage(analysis, true);
 
         positionPopup();
       } catch (error) {
@@ -1249,7 +1252,9 @@ floatingButton.addEventListener("click", async (e) => {
       chatContainer.innerHTML = "";
 
       addMessage(originalText, false);
-      addMessage(removeSecondSentence(analysis), true);
+      // COMMENTED OUT: Feature that cuts out all sentences after the first one
+      // addMessage(removeSecondSentence(analysis), true);
+      addMessage(analysis, true);
 
       positionPopup();
     } catch (error) {

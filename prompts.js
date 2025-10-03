@@ -71,11 +71,6 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
 // Function to build the analysis prompt with selectedText and context
 function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   context = context.replaceAll(/[\n"'""\\]/g, "").replaceAll(/\s+/g, " ");
-
-  // if (selectedText.split(' ').length > 9 ){
-  //   return `Selected part: "${selectedText}". Paraphrase the selected part word by word. 18+ allowed. Return just paraphrased text.`
-  // }
-
   const utilityWords = [
     // Articles
     "a",
