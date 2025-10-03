@@ -20,7 +20,6 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
 
     // Use full conversation history for follow-ups (don't slice off the current question)
     messages = [
-      { role: "system", content: FOLLOWUP_SYSTEM_PROMPT },
       { role: "user", content: buildConversationPrompt(conversationHistory, selectedText) }
     ];
   } else {
