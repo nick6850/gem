@@ -270,7 +270,7 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length === 1){
-    return ` Selected word: "${selectedText}". Give one definition JUST for the selected word "${selectedText}" on its own. Context: "${context}". Do not include into the definition specific details from the context. Ignore idioms/phrases it is part of. Take into account slang/fugurative meaning and policamy. Do not repeat the word. Use one consise sentence, everyday simple slang-aware language, 18+ allowed.`;
+    return ` Selected word: "${selectedText}". Give one definition JUST for the selected word "${selectedText}" on its own. Take into account SLANG. Context: "${context}". Do not include into the definition specific details from the context. Ignore idioms/phrases it is part of (I am interested in the word by itself). Do not repeat the word. Take into account SLANG. Use one consise sentence, everyday simple slang-aware language, 18+ allowed.`;
   }
 
   if (words.length === 2){
