@@ -269,11 +269,11 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length === 1){
-    return `Context: "${context}" Give one simple definition JUST for the word "${selectedText}" on its own (in isolation). Take into account slang.  Do not repeat the word. Use one consise sentence, everyday simple language, 18+ allowed.`;
+    return `Context: "${context}" Give a simple definition JUST for the word "${selectedText}" on its own (in isolation). Take into account slang.  Do not repeat the word. Use one sentence, everyday simple language, 18+ allowed.`;
   }
 
   if (words.length === 2){
-    return ` Context: "${context}". Phrase: "${selectedText}". Give a simple definition for the phrase "${selectedText}" on its own.  Do not include "${selectedText}" itself into your final definition. Do not include into the definition extra details from the context which are not the part of the phrase. Use one consise sentence, everyday simple language.`;
+    return ` Context: "${context}". Phrase: "${selectedText}". Give a simple definition for the phrase "${selectedText}" on its own. Do not include into the definition extra details from the context which are not the part of the phrase. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language.`;
   }
 }
 
