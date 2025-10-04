@@ -269,7 +269,13 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
     return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Do NOT add any details from the context that aren't in the selected.`;
   }
 
-  return `Context: "${context}". Give a general definition ONLY for the "${selectedText}". Never interpret selected word as idiom/phrase unless entire idiom/phrase is selected. Do not repeat selected word. Context is only for picking a slang-aware suitable meaning. Never include context specifics in your definition. Your definition must not reveal what the context is about. Do not contaminate the definition with context details. Short sentence, everyday language, 18+ allowed.`;
+  if (words.length === 1){
+    return ` Selected word: "${selectedText}". Give one definition JUST for the selected word "${selectedText}" on its own. Context: "${context}". Do not include into the definition specific details from the context. Ignore idioms/phrases it is part of. Take into account slang/fugurative meaning and policamy. Do not repeat the word. Use one consise sentence, everyday simple slang-aware language, 18+ allowed.`;
+  }
+
+  if (words.length === 2){
+    return `Context: "${context}". I selected JUST the phrase "${selectedText}" as standalone. Give one detailed slang-aware definition for the phrase "${selectedText}". Do not include context specifics in your definition. Do not repeat the phrase. One short sentence, everyday simple slang-aware language, 18+ allowed.`;
+  }
 }
 
 // Function to build the follow-up prompt
