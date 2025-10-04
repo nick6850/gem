@@ -70,7 +70,7 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
 
 // Function to build the analysis prompt with selectedText and context
 function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
-  context = context.replaceAll(/[\n"'""\\]/g, "").replaceAll(/\s+/g, " ");
+  context = context.replaceAll(/[\n"'""“”\\]/g, "").replaceAll(/\s+/g, " ");
   const utilityWords = [
     // Articles
     "a",
@@ -238,7 +238,6 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
     "also",
     "just",
     "only",
-    "even",
     "still",
     "already",
     "yet",
@@ -270,11 +269,11 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length === 1){
-    return ` Selected word: "${selectedText}". Give one definition JUST for the selected word "${selectedText}" on its own. Take into account SLANG. Context: "${context}". Do not include into the definition specific details from the context. Ignore idioms/phrases it is part of (I am interested in the word by itself). Do not repeat the word. Take into account SLANG. Use one consise sentence, everyday simple slang-aware language, 18+ allowed.`;
+    return `Context: "${context}" Give one general definition JUST for the word "${selectedText}" on its own (in isolation). Take into account slang.  Do not repeat the word. Use one consise sentence, everyday simple language, 18+ allowed.`;
   }
 
   if (words.length === 2){
-    return `Context: "${context}". I selected JUST the phrase "${selectedText}" as standalone. Give one detailed slang-aware definition for the phrase "${selectedText}". Do not include context specifics in your definition. Do not repeat the phrase. One short sentence, everyday simple slang-aware language, 18+ allowed.`;
+    return ` Context: "${context}". Phrase: "${selectedText}". Give a definition for the phrase "${selectedText}" on its own.  Do not include "${selectedText}" itself into your final definition. Do not include into the definition details from the context which are not the part of the phrase. Use one laconic sentence, everyday simple language.`;
   }
 }
 
