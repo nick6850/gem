@@ -265,7 +265,7 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length > 2) {
-    return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Do NOT add any details from the context that aren't in the selected.`;
+    return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words.`;
   }
 
   if (words.length === 1){
@@ -273,7 +273,7 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length === 2){
-    return ` Context: "${context}". Phrase: "${selectedText}". Give a simple definition for the phrase "${selectedText}" on its own. Do not include into the definition extra details from the context which are not the part of the phrase. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language.`;
+    return ` Context: "${context}". Phrase: "${selectedText}". Give a full simple definition for the phrase "${selectedText}" on its own. Do not include into the definition extra details from the context which are not the part of the phrase. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language.`;
   }
 }
 

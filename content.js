@@ -759,7 +759,7 @@ contextButton.addEventListener("click", createQuickPromptCallback(
 
 exampleButton.addEventListener("click", createQuickPromptCallback(
   "Use it in a sentence",
-  "Create a sentence on an unrelated topic using this phrase with the same meaning.",
+  "I am an English learner. Create a sentence using the selected word to demonstrate it once more (like they do in dictionaries). Return just that sentence",
   "Use it in another sentence."
 ));
 
