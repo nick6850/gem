@@ -835,9 +835,17 @@ document.body.appendChild(popup);
 /////////////////////////////////////////////////////////////
 // == Helper to add a message to the chat window ==
 /////////////////////////////////////////////////////////////
+
+function formatAIResponse(text) {
+  // Remove leading '-' or ':' from the response
+  return text.replace(/^[-:]\s*/g, '').trim();
+}
+
 function addMessage(text, isAI = false) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${isAI ? "ai" : "user"}`;
+  // Format AI responses first
+  text = isAI ? formatAIResponse(text) : text;
   messageDiv.style.cssText = `
     margin-top: 10px !important;
     padding: 9px 12px !important;
