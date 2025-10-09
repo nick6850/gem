@@ -639,7 +639,7 @@ popup.style.cssText = `
   -webkit-font-smoothing: antialiased !important;
 `;
 
-// Create an overlay to block all page interactions when popup is open
+// Create an overlay to block clicks outside popup
 const overlay = document.createElement("div");
 overlay.className = "popup-overlay my-ai-helper-extension";
 overlay.style.cssText = `
@@ -651,16 +651,37 @@ overlay.style.cssText = `
   background: transparent !important;
   z-index: 10000 !important;
   display: none !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
 `;
 document.body.appendChild(overlay);
 
-// Handle clicks on the overlay to close popup
-overlay.addEventListener("click", (event) => {
-  popup.style.display = "none";
-  overlay.style.display = "none";
-  conversationHistory = [];
-});
+// Add click handler to document to close popup when clicking outside
+let clickOutsideHandler = null;
+
+function enableClickOutsideClose() {
+  clickOutsideHandler = (event) => {
+    // Only handle clicks outside the popup
+    if (!popup.contains(event.target) && popup.style.display === "block") {
+      event.preventDefault();
+      event.stopPropagation();
+      popup.style.display = "none";
+      overlay.style.display = "none";
+      conversationHistory = [];
+      // Remove the handler when popup is closed
+      document.removeEventListener("click", clickOutsideHandler, true);
+      clickOutsideHandler = null;
+    }
+  };
+  // Use capture phase to intercept clicks before they reach page elements
+  document.addEventListener("click", clickOutsideHandler, true);
+}
+
+function disableClickOutsideClose() {
+  if (clickOutsideHandler) {
+    document.removeEventListener("click", clickOutsideHandler, true);
+    clickOutsideHandler = null;
+  }
+}
 
 // Create chat container
 const chatContainer = document.createElement("div");
@@ -1006,6 +1027,9 @@ function positionPopup() {
   popup.style.top = `${top}px`;
   popup.style.display = "block";
   overlay.style.display = "block";
+  
+  // Enable click outside to close functionality
+  enableClickOutsideClose();
 }
 
 /////////////////////////////////////////////////////////////
@@ -1336,102 +1360,15 @@ input.addEventListener("keypress", (e) => {
 // == Close popup when clicking outside or hide button ==
 /////////////////////////////////////////////////////////////
 
-// Function to block all events when popup is open (but allow popup interactions)
-function blockAllEvents(event) {
-  if (popup.style.display === "block") {
-    // Allow interactions within the popup itself
-    if (popup.contains(event.target)) {
-      return; // Don't block events within the popup
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    return false;
-  }
-}
-
-// Add comprehensive event blocking when popup is open
+// Handle clicks on floating button visibility
 document.addEventListener("click", (event) => {
-  // If popup is open, prevent all page interactions
-  if (popup.style.display === "block") {
-    // Allow interactions within the popup itself
-    if (popup.contains(event.target)) {
-      return; // Don't block events within the popup
-    }
-    
-    // If click is outside the popup & the button, close the popup
-    if (!popup.contains(event.target) && !floatingButton.contains(event.target)) {
-      popup.style.display = "none";
-      overlay.style.display = "none";
-      // Clear conversation history when popup closes - no persistence
-      conversationHistory = [];
-    }
-    // Always prevent the event from affecting the page when popup is open
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    return false;
-  }
-
-  // If click is not on the floating button, hide it
-  if (!floatingButton.contains(event.target)) {
+  // If click is not on the floating button, hide it (only when popup is closed)
+  if (popup.style.display !== "block" && !floatingButton.contains(event.target)) {
     floatingButton.style.display = "none";
   }
-}, true); // Use capture phase
-
-// Block all mouse events when popup is open
-document.addEventListener("mousedown", blockAllEvents, true);
-document.addEventListener("mouseup", blockAllEvents, true);
-document.addEventListener("mousemove", blockAllEvents, true);
-document.addEventListener("mouseover", blockAllEvents, true);
-document.addEventListener("mouseout", blockAllEvents, true);
-document.addEventListener("contextmenu", blockAllEvents, true);
-
-// Block all touch events when popup is open
-document.addEventListener("touchstart", blockAllEvents, true);
-document.addEventListener("touchend", blockAllEvents, true);
-document.addEventListener("touchmove", blockAllEvents, true);
-
-// Block all keyboard events when popup is open (except our shortcuts and popup interactions)
-document.addEventListener("keydown", (event) => {
-  if (popup.style.display === "block") {
-    // Allow interactions within the popup itself
-    if (popup.contains(event.target)) {
-      return; // Don't block keyboard events within the popup
-    }
-    
-    // Allow our keyboard shortcuts to work
-    const isCtrlZ = event.ctrlKey && event.key === "z";
-    const isCmdB = (event.metaKey || event.ctrlKey) && event.key === "b";
-    const isProviderSwitch = (event.ctrlKey || event.metaKey) && event.shiftKey && event.key === "p";
-    
-    if (!isCtrlZ && !isCmdB && !isProviderSwitch) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      return false;
-    }
-  }
 }, true);
 
-// Block keyup and keypress events when popup is open (except within popup)
-document.addEventListener("keyup", (event) => {
-  if (popup.style.display === "block" && !popup.contains(event.target)) {
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    return false;
-  }
-}, true);
-
-document.addEventListener("keypress", (event) => {
-  if (popup.style.display === "block" && !popup.contains(event.target)) {
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    return false;
-  }
-}, true);
+// Allow all keyboard events to work normally when popup is open
 
 // Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
 document.addEventListener('keydown', function(event) {
