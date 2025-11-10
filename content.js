@@ -5,7 +5,7 @@ let conversationHistory = [];
 
 // == LLM Provider Configuration ==
 // Current LLM provider: 'local' or 'gemini'
-let currentLLMProvider = 'local';
+let currentLLMProvider = 'gemini';
 
 // == Context Configuration ==
 // Number of sentences to extract (current + previous sentences)
@@ -1372,8 +1372,8 @@ document.addEventListener("click", (event) => {
 
 // Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
 document.addEventListener('keydown', function(event) {
-  // Check for Ctrl+Shift+P or Cmd+Shift+P
-  if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
+  // Check for Ctrl+1 or Cmd+1
+  if ((event.ctrlKey || event.metaKey) && event.key === '1') {
     event.preventDefault();
     event.stopPropagation();
 

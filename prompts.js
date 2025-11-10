@@ -26,7 +26,7 @@ Your Output: **Definition:** Occasionally or every once in a while.
 Keep only output portion!
 `;
 // Simple analysis prompt for local LLM
-const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to  as if it was STANDALONE. Short sentence, general language, 18+ allowed.`;
+const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to as if it was STANDALONE. Short sentence, general language, 18+ allowed.`;
 
 // Concise system prompt for follow-ups
 const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
@@ -269,7 +269,7 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length === 1){
-    return `Context: "${context}" Give a simple definition JUST for the word "${selectedText}" on its own (in isolation). Take into account slang. Do not refer to the context. Do not repeat the word. Use one sentence, simple language, 18+ allowed.`;
+    return `Context: "${context}" Give a simple definition JUST for the word "${selectedText}" on its own (in isolation). Take into account slang. Do not refer to the context. Do not repeat the word. Use one sentence, simple language.`;
   }
 
   if (words.length === 2){
