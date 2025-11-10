@@ -269,7 +269,7 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
   }
 
   if (words.length === 1){
-    return `Context: "${context}" Give a simple definition JUST for the word "${selectedText}" on its own (in isolation). Take into account slang. Do not refer to the context. Do not repeat the word. Use one sentence, simple language.`;
+    return `Context: "${context}" Give ONE simple definition JUST for the word "${selectedText}" on its own. Take into account slang/figurative meaning if present. Do not repeat the word. Use one sentence, simple language.`;
   }
 
   if (words.length === 2){
