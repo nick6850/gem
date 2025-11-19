@@ -389,28 +389,28 @@ style.innerHTML = `
   .chat-container {
       scrollbar-width: thin !important;
       scrollbar-color: #aaa transparent !important;
-      font-size: 13.5px !important; 
+      font-size: 14px !important; 
       font-family: ui-sans-serif !important; 
   }
 
   .popup {
-      font-size: 13.5px !important;
+      font-size: 14px !important;
       font-family: ui-sans-serif; !important;
   }
 
   .input-container input,
   .input-container button {
-      font-size: 13.5px !important; 
+      font-size: 14px !important; 
       display: flex;
       align-items: center;
   }
 
   .message, .message.ai, .message.user {
-      font-size: 13.5px !important;
+      font-size: 14px !important;
   }
 
   .message.thinking {
-      font-size: 13.5px !important;
+      font-size: 14px !important;
   }
 `;
 shadowRoot.appendChild(style);
@@ -557,7 +557,6 @@ floatingButton.style.cssText = `
   align-items: center !important;
   font-size: 20px !important;
   color: white !important;
-  pointer-events: auto !important;
 `;
 floatingButton.innerHTML = "?";
 floatingButton.addEventListener("mouseenter", () => {
@@ -589,7 +588,6 @@ notificationDiv.style.cssText = `
   display: none !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
   border: 2px solid #4285f4 !important;
-  pointer-events: auto !important;
 `;
 
 // Function to show notification
@@ -633,7 +631,7 @@ popup.style.cssText = `
   position: absolute !important;
   padding: 20px !important;
   background: white !important; 
-  font-size: 13.5px !important;
+  font-size: 14px !important;
   line-height: 1.5 !important;
   border: 1px solid #e0e0e0 !important;
   border-radius: 8px !important;
@@ -646,7 +644,6 @@ popup.style.cssText = `
   max-height: 80vh !important;
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
-  pointer-events: auto !important;
 `;
 
 // Create an overlay to block clicks outside popup
@@ -661,7 +658,6 @@ overlay.style.cssText = `
   background: transparent !important;
   z-index: 10000 !important;
   display: none !important;
-  pointer-events: none !important;
 `;
 shadowRoot.appendChild(overlay);
 
