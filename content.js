@@ -644,6 +644,7 @@ popup.style.cssText = `
   max-height: 80vh !important;
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
+  pointer-events: auto !important;
 `;
 
 // Create an overlay to block clicks outside popup
@@ -658,37 +659,25 @@ overlay.style.cssText = `
   background: transparent !important;
   z-index: 10000 !important;
   display: none !important;
+  pointer-events: auto !important;
 `;
 shadowRoot.appendChild(overlay);
 
-// Add click handler to document to close popup when clicking outside
+// Add click handler to overlay to close popup when clicking outside
+overlay.addEventListener("click", () => {
+  popup.style.display = "none";
+  overlay.style.display = "none";
+  conversationHistory = [];
+});
+
 let clickOutsideHandler = null;
 
 function enableClickOutsideClose() {
-  clickOutsideHandler = (event) => {
-    // Only handle clicks outside the popup
-    // Check if the click was inside the popup using composedPath for Shadow DOM support
-    const path = event.composedPath();
-    if (!path.includes(popup) && popup.style.display === "block") {
-      event.preventDefault();
-      event.stopPropagation();
-      popup.style.display = "none";
-      overlay.style.display = "none";
-      conversationHistory = [];
-      // Remove the handler when popup is closed
-      document.removeEventListener("click", clickOutsideHandler, true);
-      clickOutsideHandler = null;
-    }
-  };
-  // Use capture phase to intercept clicks before they reach page elements
-  document.addEventListener("click", clickOutsideHandler, true);
+  // Overlay handles the click-outside-to-close functionality
 }
 
 function disableClickOutsideClose() {
-  if (clickOutsideHandler) {
-    document.removeEventListener("click", clickOutsideHandler, true);
-    clickOutsideHandler = null;
-  }
+  // No longer needed
 }
 
 // Create chat container
@@ -1155,7 +1144,43 @@ document.addEventListener("keydown", async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (originalText) {
+      // Check for text selection in shadow DOM (popup) or regular document
+      const shadowSelection = shadowRoot.getSelection ? shadowRoot.getSelection() : null;
+      const documentSelection = window.getSelection();
+      
+      let selectedText = "";
+      let selectionSource = null;
+      
+      // Check shadow DOM selection first (popup)
+      if (shadowSelection && shadowSelection.toString().trim()) {
+        selectedText = shadowSelection.toString().trim();
+        selectionSource = "popup";
+      }
+      // Fall back to document selection
+      else if (documentSelection && documentSelection.toString().trim()) {
+        selectedText = documentSelection.toString().trim();
+        selectionSource = "document";
+      }
+      // Fall back to last selected text
+      else if (originalText) {
+        selectedText = originalText;
+        selectionSource = "cached";
+      }
+
+      if (selectedText) {
+        // Update the stored text if we have a new selection
+        if (selectionSource === "popup" || selectionSource === "document") {
+          lastSelectedText = selectedText;
+          originalText = selectedText;
+          // For popup selections, use minimal context
+          if (selectionSource === "popup") {
+            lastContextText = selectedText;
+          } else {
+            // Get context for document selections
+            const contextData = getContextAroundSelection();
+            lastContextText = contextData.fullContext;
+          }
+        }
         // Clear chat visually - keep conversation history for follow-ups
         chatContainer.innerHTML = "";
         // conversationHistory = []; // Keep history for follow-ups
@@ -1367,11 +1392,14 @@ input.addEventListener("keypress", (e) => {
 
 // Handle clicks on floating button visibility
 document.addEventListener("click", (event) => {
-  // If click is not on the floating button, hide it (only when popup is closed)
-  if (popup.style.display !== "block" && !floatingButton.contains(event.target)) {
+  const path = event.composedPath();
+  const isInsidePopup = path.includes(popup) || path.includes(shadowHost);
+  
+  // If click is not on the floating button and not inside popup, hide the button
+  if (popup.style.display !== "block" && !floatingButton.contains(event.target) && !isInsidePopup) {
     floatingButton.style.display = "none";
   }
-}, true);
+}, false);
 
 // Allow all keyboard events to work normally when popup is open
 
