@@ -1,7 +1,7 @@
 // == Gemini API details ==
 async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
   const API_ENDPOINT =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";
   const API_KEY = "AIzaSyC9jnmAh_cyvg0hNa5bejNtKGRhkDC4noE"; // DONT DELETE
 
   if (!selectedText.trim() && !isFollowUp) {

@@ -711,7 +711,7 @@ const quickPromptsContainer = document.createElement("div");
 
 quickPromptsContainer.style.cssText = `
   display: flex !important;
-  justify-content: middle !important;
+  justify-content: center !important;
   margin-top: 5px !important;
   gap: 5px !important;
 `;
