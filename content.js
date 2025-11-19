@@ -361,6 +361,13 @@ function extractWordBasedContext(pageText, selectedText) {
   };
 }
 
+// Create a host element for the shadow DOM
+const shadowHost = document.createElement("div");
+shadowHost.id = "my-ai-helper-host";
+shadowHost.style.cssText = "position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none; overflow: visible;";
+document.body.appendChild(shadowHost);
+const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+
 // Inject custom scrollbar styling and set consistent font size
 const style = document.createElement("style");
 style.innerHTML = `
@@ -406,7 +413,7 @@ style.innerHTML = `
       font-size: 13.5px !important;
   }
 `;
-document.head.appendChild(style);
+shadowRoot.appendChild(style);
 
 // YouTube subtitle selection fix
 if (window.location.hostname.includes('youtube.com') || window.location.hostname.includes('youtu.be')) {
@@ -550,6 +557,7 @@ floatingButton.style.cssText = `
   align-items: center !important;
   font-size: 20px !important;
   color: white !important;
+  pointer-events: auto !important;
 `;
 floatingButton.innerHTML = "?";
 floatingButton.addEventListener("mouseenter", () => {
@@ -560,7 +568,7 @@ floatingButton.addEventListener("mouseleave", () => {
 });
 
 //commented out since i use shortcut to open the popup for now
-// document.body.appendChild(floatingButton);
+// shadowRoot.appendChild(floatingButton);
 
 
 // Create notification element for provider switching
@@ -581,6 +589,7 @@ notificationDiv.style.cssText = `
   display: none !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
   border: 2px solid #4285f4 !important;
+  pointer-events: auto !important;
 `;
 
 // Function to show notification
@@ -600,7 +609,7 @@ function showProviderNotification(provider) {
 }
 
 // Initialize notification
-document.body.appendChild(notificationDiv);
+shadowRoot.appendChild(notificationDiv);
 
 // Make setLLMProvider function available globally
 window.setLLMProvider = function(provider) {
@@ -637,6 +646,7 @@ popup.style.cssText = `
   max-height: 80vh !important;
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
+  pointer-events: auto !important;
 `;
 
 // Create an overlay to block clicks outside popup
@@ -653,7 +663,7 @@ overlay.style.cssText = `
   display: none !important;
   pointer-events: none !important;
 `;
-document.body.appendChild(overlay);
+shadowRoot.appendChild(overlay);
 
 // Add click handler to document to close popup when clicking outside
 let clickOutsideHandler = null;
@@ -661,7 +671,9 @@ let clickOutsideHandler = null;
 function enableClickOutsideClose() {
   clickOutsideHandler = (event) => {
     // Only handle clicks outside the popup
-    if (!popup.contains(event.target) && popup.style.display === "block") {
+    // Check if the click was inside the popup using composedPath for Shadow DOM support
+    const path = event.composedPath();
+    if (!path.includes(popup) && popup.style.display === "block") {
       event.preventDefault();
       event.stopPropagation();
       popup.style.display = "none";
@@ -699,7 +711,7 @@ const quickPromptsContainer = document.createElement("div");
 
 quickPromptsContainer.style.cssText = `
   display: flex !important;
-  justify-content: end !important;
+  justify-content: middle !important;
   margin-top: 5px !important;
   gap: 5px !important;
 `;
@@ -793,7 +805,7 @@ shortifyButton.addEventListener("click", createQuickPromptCallback(
 
 expandButton.addEventListener("click", createQuickPromptCallback(
   "Expand",
-  "Give more info. Use 1 sentence.",
+  "Give more info on that word. Use 1 sentence.",
   "Expand"
 ));
 
@@ -847,11 +859,12 @@ input.style.cssText = `
   color: black !important;
   text-align: left !important;
   height: 15px;
+  margin-top: 5px !important;
 `;
 
 inputContainer.appendChild(input);
 popup.appendChild(inputContainer);
-document.body.appendChild(popup);
+shadowRoot.appendChild(popup);
 
 /////////////////////////////////////////////////////////////
 // == Helper to add a message to the chat window ==
@@ -1019,8 +1032,8 @@ function positionPopup() {
   const popupWidth = popup.offsetWidth;
 
   // Calculate the center position
-  const left = window.scrollX + (viewportWidth - popupWidth) / 2;
-  const top = window.scrollY + (viewportHeight - popupHeight) / 2;
+  const left = (viewportWidth - popupWidth) / 2;
+  const top = (viewportHeight - popupHeight) / 2;
 
   // Set the popup's position
   popup.style.left = `${left}px`;
@@ -1038,29 +1051,27 @@ function positionPopup() {
 function positionButton(rect) {
   const buttonWidth = floatingButton.offsetWidth;
   const buttonHeight = floatingButton.offsetHeight;
-  const scrollX = window.scrollX;
-  const scrollY = window.scrollY;
 
-  let left = rect.right + scrollX + 5;
-  let top = rect.top + scrollY + rect.height / 2 - buttonHeight / 2;
+  let left = rect.right + 5;
+  let top = rect.top + rect.height / 2 - buttonHeight / 2;
 
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
   // Ensure the button doesn't go out of the viewport horizontally
-  if (left + buttonWidth > viewportWidth + scrollX) {
-    left = rect.left + scrollX - buttonWidth - 5;
+  if (left + buttonWidth > viewportWidth) {
+    left = rect.left - buttonWidth - 5;
   }
-  if (left < scrollX) {
-    left = scrollX + 5; // Ensure it doesn't go off the left edge
+  if (left < 0) {
+    left = 5; // Ensure it doesn't go off the left edge
   }
 
   // Ensure the button doesn't go out of the viewport vertically
-  if (top + buttonHeight > viewportHeight + scrollY) {
-    top = rect.bottom + scrollY - buttonHeight - 5;
+  if (top + buttonHeight > viewportHeight) {
+    top = rect.bottom - buttonHeight - 5;
   }
-  if (top < scrollY) {
-    top = scrollY + 5; // Ensure it doesn't go off the top edge
+  if (top < 0) {
+    top = 5; // Ensure it doesn't go off the top edge
   }
 
   floatingButton.style.left = `${left}px`;
@@ -1160,18 +1171,17 @@ document.addEventListener("keydown", async (e) => {
       const windowHeight = window.innerHeight;
 
       let left =
-        buttonRect.left +
-        window.scrollX -
+        buttonRect.left -
         popupWidth / 2 +
         floatingButton.offsetWidth / 2;
-      let top = buttonRect.bottom + window.scrollY + 10;
+      let top = buttonRect.bottom + 10;
 
       if (left < 0) left = 10;
       else if (left + popupWidth > windowWidth) {
         left = windowWidth - popupWidth - 10;
       }
       if (top + popupHeight > windowHeight) {
-        top = buttonRect.top + window.scrollY - popupHeight - 10;
+        top = buttonRect.top - popupHeight - 10;
       }
 
       popup.style.left = `${left}px`;
@@ -1240,18 +1250,17 @@ floatingButton.addEventListener("click", async (e) => {
     const windowHeight = window.innerHeight;
 
     let left =
-      buttonRect.left +
-      window.scrollX -
+      buttonRect.left -
       popupWidth / 2 +
       floatingButton.offsetWidth / 2;
-    let top = buttonRect.bottom + window.scrollY + 10;
+    let top = buttonRect.bottom + 10;
 
     if (left < 0) left = 10;
     else if (left + popupWidth > windowWidth) {
       left = windowWidth - popupWidth - 10;
     }
     if (top + popupHeight > windowHeight) {
-      top = buttonRect.top + window.scrollY - popupHeight - 10;
+      top = buttonRect.top - popupHeight - 10;
     }
 
     popup.style.left = `${left}px`;
