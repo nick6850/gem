@@ -678,6 +678,7 @@ popup.style.cssText = `
   overflow-x: hidden !important;
   max-height: min(350px, calc(100vh - 40px)) !important;
   text-align: left !important;
+    pointer-events: auto !important;
   -webkit-font-smoothing: antialiased !important;
   overscroll-behavior: contain !important;
 `;
@@ -693,6 +694,7 @@ overlay.style.cssText = `
   height: 100vh !important;
   background: transparent !important;
   z-index: 10000 !important;
+    pointer-events: auto !important;
   display: none !important;
 `;
 shadowRoot.appendChild(overlay);
