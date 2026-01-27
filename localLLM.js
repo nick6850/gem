@@ -9,38 +9,34 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
   ///////////////////////////////////////////
   // == Build or update the conversation ==
   ///////////////////////////////////////////
-  let messages;
 
   if (isFollowUp) {
     // User follow-up question - add to conversation history
     conversationHistory.push({
       role: "user",
-      content: selectedText, // This is the user question for follow-ups
+      content: selectedText,
     });
-
-    // Use full conversation history for follow-ups (don't slice off the current question)
-    messages = [
-      { role: "user", content: buildConversationPrompt(conversationHistory, selectedText) }
-    ];
   } else {
-    // First time analysis
-    const systemPrompt = buildAnalysisPrompt(selectedText, context, 'local', movieModeEnabled);
+    // First time analysis - build initial prompt and start fresh history
+    const initialPrompt = buildAnalysisPrompt(selectedText, context, 'local', movieModeEnabled);
 
     conversationHistory = [
       {
         role: "system",
-        content: systemPrompt,
+        content: FOLLOWUP_SYSTEM_PROMPT,
       },
       {
         role: "user",
-        content: `Selected text: "${selectedText}"\nContext: "${context}"`,
+        content: `${initialPrompt}\n\nSelected text: "${selectedText}"\nContext: "${context}"`,
       },
     ];
-
-    messages = [
-      { role: "system", content: systemPrompt },
-    ];
   }
+
+  // Build messages array for OpenAI-compatible API (includes full history)
+  const messages = conversationHistory.map(msg => ({
+    role: msg.role,
+    content: msg.content
+  }));
 
   try {
     const requestBody = {
@@ -49,12 +45,10 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
       temperature: 0,
       max_tokens: 10000,
       stream: false,
-  };
+    };
 
-    console.log(
-      "Sending request to local LLM:",
-      JSON.stringify(requestBody, null, 2)
-    );
+    console.log("📤 Sending to Local LLM. Conversation history length:", conversationHistory.length);
+    console.log("📤 Messages:", JSON.stringify(messages, null, 2));
 
     const response = await fetch(API_ENDPOINT, {
       method: "POST",
@@ -85,9 +79,11 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
     // Capture the AI's reply in conversation history
     const aiReply = data.choices[0].message.content;
     conversationHistory.push({
-      role: "assistant", // Use the standard 'assistant' role
+      role: "assistant",
       content: aiReply,
     });
+
+    console.log("📥 Conversation history after response:", conversationHistory.length, "messages");
 
     return aiReply;
   } catch (error) {

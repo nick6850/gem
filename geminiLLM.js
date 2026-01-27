@@ -11,43 +11,42 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
   ///////////////////////////////////////////
   // == Build or update the conversation ==
   ///////////////////////////////////////////
-  let prompt;
+  
   if (isFollowUp) {
     // User follow-up question - add to conversation history
     conversationHistory.push({
       role: "user",
-      content: selectedText, // This is the user question for follow-ups
+      content: selectedText,
     });
-
-    // Use full conversation history for follow-ups (don't slice off the current question)
-    prompt = FOLLOWUP_SYSTEM_PROMPT + "\n\n" + buildConversationPrompt(conversationHistory, selectedText);
   } else {
-    // First time analysis
-    prompt = buildAnalysisPrompt(selectedText, context, 'gemini', movieModeEnabled);
-
+    // First time analysis - build initial prompt and start fresh history
+    const initialPrompt = buildAnalysisPrompt(selectedText, context, 'gemini', movieModeEnabled);
+    
     conversationHistory = [
       {
-        role: "system",
-        content: prompt,
-      },
-      {
         role: "user",
-        content: `Selected text: "${selectedText}"\nContext: "${context}"`,
+        content: `${initialPrompt}\n\nSelected text: "${selectedText}"\nContext: "${context}"`,
       },
     ];
   }
 
+  // Build Gemini-format contents array from conversation history
+  const contents = conversationHistory.map(msg => ({
+    role: msg.role === "assistant" ? "model" : "user",
+    parts: [{ text: msg.content }]
+  }));
+
+  // Add system instruction for follow-ups
+  let systemInstruction = null;
+  if (isFollowUp) {
+    systemInstruction = {
+      parts: [{ text: FOLLOWUP_SYSTEM_PROMPT }]
+    };
+  }
+
   try {
     const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
+      contents: contents,
       safetySettings: [
         {
           category: "HARM_CATEGORY_HATE_SPEECH",
@@ -71,6 +70,14 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
         },
       ],
     };
+
+    // Add system instruction if it's a follow-up
+    if (systemInstruction) {
+      requestBody.systemInstruction = systemInstruction;
+    }
+
+    console.log("📤 Sending to Gemini. Conversation history length:", conversationHistory.length);
+    console.log("📤 Contents:", JSON.stringify(contents, null, 2));
 
     const response = await fetch(`${API_ENDPOINT}?key=${API_KEY}`, {
       method: "POST",
@@ -104,6 +111,8 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
       role: "assistant",
       content: aiReply,
     });
+
+    console.log("📥 Conversation history after response:", conversationHistory.length, "messages");
 
     return aiReply;
   } catch (error) {

@@ -674,9 +674,9 @@ popup.style.cssText = `
   z-index: 10001 !important; 
   display: none !important;
   color: #333 !important;
-  overflow-y: scroll !important;
+  overflow-y: auto !important;
   overflow-x: hidden !important;
-  max-height: calc(100vh - 40px) !important;
+  max-height: min(350px, calc(100vh - 40px)) !important;
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
   pointer-events: auto !important;
@@ -980,17 +980,10 @@ function addMessage(text, isAI = false) {
 
   chatContainer.appendChild(messageDiv);
 
-  // If it's an AI message, focus on the last message's beginning, a bit higher
-  if (isAI) {
-    setTimeout(() => {
-      const lastMessage = chatContainer.lastElementChild;
-      // Scroll a little higher than the top of the last message
-      chatContainer.scrollTop = lastMessage.offsetTop - 150; // Adjust the "150" value to fine-tune
-    }, 100); // Small delay to ensure rendering
-  } else {
-    // For user messages, scroll to the bottom
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
+  // Always scroll popup to bottom to see latest content
+  setTimeout(() => {
+    popup.scrollTop = popup.scrollHeight;
+  }, 50);
 
   return messageDiv;
 }
@@ -1080,6 +1073,22 @@ function positionPopup() {
   // Enable click outside to close functionality
   enableClickOutsideClose();
 }
+
+// Reposition popup on window resize
+window.addEventListener('resize', () => {
+  if (popup.style.display !== 'none') {
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const popupHeight = popup.offsetHeight;
+    const popupWidth = popup.offsetWidth;
+
+    const left = (viewportWidth - popupWidth) / 2;
+    const top = (viewportHeight - popupHeight) / 2;
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+  }
+});
 
 /////////////////////////////////////////////////////////////
 // == Helper to position floating button near selection ==
