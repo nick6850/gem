@@ -379,6 +379,18 @@ style.innerHTML = `
       box-sizing: content-box !important;
   }
 
+  .popup::-webkit-scrollbar {
+      width: 6px !important;
+  }
+  .popup::-webkit-scrollbar-track {
+      background: transparent !important;
+  }
+  .popup::-webkit-scrollbar-thumb {
+      background-color: #aaa !important;
+      border-radius: 3px !important;
+      border: none !important;
+  }
+
   .chat-container::-webkit-scrollbar {
       width: 6px !important;
   }
@@ -400,6 +412,8 @@ style.innerHTML = `
   .popup {
       font-size: 14px !important;
       font-family: ui-sans-serif; !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: #aaa transparent !important;
   }
 
   .input-container input,
@@ -648,7 +662,7 @@ const popup = document.createElement("div");
 // ADDED a unique scoping class 'my-ai-helper-extension'
 popup.className = "popup my-ai-helper-extension";
 popup.style.cssText = `
-  position: absolute !important;
+  position: fixed !important;
   padding: 20px !important;
   background: white !important; 
   font-size: 14px !important;
@@ -660,10 +674,13 @@ popup.style.cssText = `
   z-index: 10001 !important; 
   display: none !important;
   color: #333 !important;
-  overflow: hidden !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  max-height: calc(100vh - 40px) !important;
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
   pointer-events: auto !important;
+  overscroll-behavior: contain !important;
 `;
 
 // Create an overlay to block clicks outside popup
@@ -681,6 +698,12 @@ overlay.style.cssText = `
   pointer-events: auto !important;
 `;
 shadowRoot.appendChild(overlay);
+
+// Add wheel event handler to popup for scroll wheel support
+popup.addEventListener("wheel", (e) => {
+  e.stopPropagation();
+  // Let the default scroll behavior happen
+}, { passive: true });
 
 // Add click handler to overlay to close popup when clicking outside
 overlay.addEventListener("click", () => {
@@ -703,8 +726,6 @@ function disableClickOutsideClose() {
 const chatContainer = document.createElement("div");
 chatContainer.className = "chat-container";
 chatContainer.style.cssText = `
-  overflow-y: auto !important;
-  max-height: 250px !important;
   line-height: 1.5 !important;
   -webkit-font-smoothing: antialiased !important;
 `;
