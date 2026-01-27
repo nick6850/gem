@@ -23,7 +23,7 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
     prompt = FOLLOWUP_SYSTEM_PROMPT + "\n\n" + buildConversationPrompt(conversationHistory, selectedText);
   } else {
     // First time analysis
-    prompt = buildAnalysisPrompt(selectedText, context, 'gemini');
+    prompt = buildAnalysisPrompt(selectedText, context, 'gemini', movieModeEnabled);
 
     conversationHistory = [
       {

@@ -29,16 +29,16 @@ Keep only output portion!
 const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to as if it was STANDALONE. Short sentence, general language, 18+ allowed.`;
 
 // Concise system prompt for follow-ups
-const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant analyzing text from webpages. Answer follow-up questions based on the conversation history. Keep responses concise and relevant.`;
+const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. The user previously selected some text from a webpage and you explained it. Now answer their follow-up questions about that same text. Keep responses concise and relevant. Reference the original text and your previous explanation when answering.`;
 
 // Function to build conversation history prompt
 function buildConversationPrompt(conversationHistory, currentQuestion) {
-  let prompt = "Conversation history:\n";
+  let prompt = "=== CONVERSATION HISTORY ===\n\n";
 
   conversationHistory.forEach((msg, index) => {
     if (msg.role === "system") {
-      // Skip system messages in the conversation history display
-      return;
+      // Include system message to show what was originally asked
+      prompt += `[Original request: ${msg.content}]\n\n`;
     } else if (msg.role === "user" && index === 1) {
       // Index 1 because system is at index 0
       // Check if this is the initial user message with selected text and context
@@ -46,30 +46,32 @@ function buildConversationPrompt(conversationHistory, currentQuestion) {
         msg.content.includes("Selected text:") &&
         msg.content.includes("Context:")
       ) {
-        prompt += `User selected: ${msg.content}\n\n`;
+        prompt += `USER SELECTED TEXT: ${msg.content}\n\n`;
       } else {
-        prompt += `User selected: "${msg.content}"\n\n`;
+        prompt += `USER SELECTED TEXT: "${msg.content}"\n\n`;
       }
     } else if (msg.role === "assistant") {
-      prompt += `Assistant: ${msg.content}\n\n`;
+      prompt += `YOUR PREVIOUS RESPONSE: ${msg.content}\n\n`;
     } else if (msg.role === "user" && index > 1) {
-      prompt += `User: ${msg.content}\n\n`;
+      prompt += `USER FOLLOW-UP: ${msg.content}\n\n`;
     }
   });
+
+  prompt += "=== END OF HISTORY ===\n\n";
 
   // Only add current question if it's not already in history
   const lastMsg = conversationHistory[conversationHistory.length - 1];
   if (!lastMsg || lastMsg.content !== currentQuestion) {
-    prompt += `User: ${currentQuestion}\n\nAssistant:`;
+    prompt += `USER'S CURRENT QUESTION: ${currentQuestion}\n\nYOUR RESPONSE:`;
   } else {
-    prompt += `Assistant:`;
+    prompt += `YOUR RESPONSE:`;
   }
 
   return prompt;
 }
 
 // Function to build the analysis prompt with selectedText and context
-function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
+function buildAnalysisPrompt(selectedText, context, provider = "gemini", movieMode = false) {
   context = context.replaceAll(/[\n"'""“”\\]/g, "").replaceAll(/\s+/g, " ");
   const utilityWords = [
     // Articles
@@ -260,20 +262,40 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini") {
     .split(/\s+/)
     .filter((word) => word.length > 0 && !utilityWords.includes(word));
 
-  if (words.length > 9) {
-    return ` Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence.`;
-  }
+  if (movieMode) {
+    // Movie mode prompts - optimized for subtitles
+    if (words.length > 9) {
+      return `I am watching a movie and that these are subtitles.Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Nothing else afterwards.`;
+    }
 
-  if (words.length > 2) {
-    return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words.`;
-  }
+    if (words.length > 2) {
+      return `I am watching a movie and that these are subtitles. Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Nothing else afterwards.`;
+    }
 
-  if (words.length === 1){
-    return `Context: "${context}" Give ONE simple definition JUST for the word "${selectedText}" on its own. Take into account slang/figurative meaning if present. Do not repeat it. Use one sentence, simple language.`;
-  }
+    if (words.length === 1){
+      return `Context: "${context}". I am watching a movie and that were subtitles. Give ONE simple definition JUST for the word "${selectedText}" on its own. Take into account slang/figurative meaning if present. Do not repeat it. Use one sentence, simple language. Nothing else afterwards.`;
+    }
 
-  if (words.length === 2){
-    return ` Context: "${context}". Phrase: "${selectedText}". Give a full simple definition for the phrase "${selectedText}" on its own. Do not include into the definition extra details from the context which are not the part of the phrase. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language.`;
+    if (words.length === 2){
+      return `  I am watching a movie and that these are subtitles. Context: "${context}". Phrase: "${selectedText}". Give a full simple definition for the phrase "${selectedText}" on its own. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language. Take into account slang/figurative meaning if present. Nothing else afterwards.`;
+    }
+  } else {
+    // Normal mode prompts
+    if (words.length > 9) {
+      return ` Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence.`;
+    }
+
+    if (words.length > 2) {
+      return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words.`;
+    }
+
+    if (words.length === 1){
+      return `Context: "${context}" Give ONE simple definition JUST for the word "${selectedText}" on its own. Take into account slang/figurative meaning if present. Do not repeat it. Use one sentence, simple language.`;
+    }
+
+    if (words.length === 2){
+      return ` Context: "${context}". Phrase: "${selectedText}". Give a full simple definition for the phrase "${selectedText}" on its own. Do not include into the definition extra details from the context which are not the part of the phrase. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language. Take into account slang/figurative meaning if present.`;
+    }
   }
 }
 

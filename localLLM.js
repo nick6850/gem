@@ -24,7 +24,7 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
     ];
   } else {
     // First time analysis
-    const systemPrompt = buildAnalysisPrompt(selectedText, context, 'local');
+    const systemPrompt = buildAnalysisPrompt(selectedText, context, 'local', movieModeEnabled);
 
     conversationHistory = [
       {

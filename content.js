@@ -7,6 +7,10 @@ let conversationHistory = [];
 // Current LLM provider: 'local' or 'gemini'
 let currentLLMProvider = 'gemini';
 
+// == Movie Mode Configuration ==
+// When enabled, prompts are optimized for movie subtitles
+let movieModeEnabled = false;
+
 // == Context Configuration ==
 // Number of sentences to extract (current + previous sentences)
 let sentenceContextCount = 1;
@@ -606,6 +610,22 @@ function showProviderNotification(provider) {
   }, 2000);
 }
 
+// Function to show movie mode notification
+function showMovieModeNotification(enabled) {
+  const emoji = enabled ? '🎬' : '📖';
+  const message = enabled ? 'Movie Mode ON' : 'Movie Mode OFF';
+  const color = enabled ? '#9c27b0' : '#757575';
+
+  notificationDiv.innerHTML = `${emoji} ${message}`;
+  notificationDiv.style.borderColor = color;
+  notificationDiv.style.display = 'block';
+
+  // Hide after 2 seconds
+  setTimeout(() => {
+    notificationDiv.style.display = 'none';
+  }, 2000);
+}
+
 // Initialize notification
 shadowRoot.appendChild(notificationDiv);
 
@@ -640,8 +660,7 @@ popup.style.cssText = `
   z-index: 10001 !important; 
   display: none !important;
   color: #333 !important;
-  overflow: auto !important;
-  max-height: 80vh !important;
+  overflow: hidden !important;
   text-align: left !important;
   -webkit-font-smoothing: antialiased !important;
   pointer-events: auto !important;
@@ -846,6 +865,17 @@ input.style.cssText = `
   height: 15px;
   margin-top: 5px !important;
 `;
+
+// Stop keyboard events from propagating to the page (prevents YouTube shortcuts etc.)
+input.addEventListener("keydown", (e) => {
+  e.stopPropagation();
+});
+input.addEventListener("keyup", (e) => {
+  e.stopPropagation();
+});
+input.addEventListener("keypress", (e) => {
+  e.stopPropagation();
+});
 
 inputContainer.appendChild(input);
 popup.appendChild(inputContainer);
@@ -1239,6 +1269,9 @@ document.addEventListener("keydown", async (e) => {
         // addMessage(removeSecondSentence(analysis), true);
         addMessage(analysis, true);
 
+        // Debug: log conversation history after initial analysis
+        console.log("✅ Initial analysis complete. conversationHistory:", JSON.stringify(conversationHistory, null, 2));
+
         positionPopup();
       } catch (error) {
         // Also check here so we don't show an error in a closed popup
@@ -1354,6 +1387,9 @@ async function handleUserInput() {
   const userQuestion = input.value.trim();
   if (!userQuestion) return;
 
+  // Debug: log conversation history before follow-up
+  console.log("📝 Follow-up requested. Current conversationHistory:", JSON.stringify(conversationHistory, null, 2));
+
   // Show user question in chat
   addMessage(userQuestion, false);
   input.value = "";
@@ -1415,5 +1451,19 @@ document.addEventListener('keydown', function(event) {
     setLLMProvider(newProvider);
 
     console.log(`🔄 Keyboard shortcut activated - switching to ${newProvider.toUpperCase()}`);
+  }
+  
+  // Check for Ctrl+2 or Cmd+2 to toggle movie mode
+  if ((event.ctrlKey || event.metaKey) && event.key === '2') {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Toggle movie mode
+    movieModeEnabled = !movieModeEnabled;
+    
+    // Show notification
+    showMovieModeNotification(movieModeEnabled);
+    
+    console.log(`🎬 Movie mode ${movieModeEnabled ? 'ENABLED' : 'DISABLED'}`);
   }
 });
