@@ -680,6 +680,8 @@ popup.style.cssText = `
   text-align: left !important;
     pointer-events: auto !important;
   -webkit-font-smoothing: antialiased !important;
+    pointer-events: auto !important;
+  -webkit-font-smoothing: antialiased !important;
   overscroll-behavior: contain !important;
 `;
 
@@ -715,6 +717,23 @@ overlay.addEventListener("click", () => {
 let clickOutsideHandler = null;
 
 function enableClickOutsideClose() {
+  clickOutsideHandler = (event) => {
+    // Only handle clicks outside the popup
+    // Check if the click was inside the popup using composedPath for Shadow DOM support
+    const path = event.composedPath();
+    if (!path.includes(popup) && popup.style.display === "block") {
+      event.preventDefault();
+      event.stopPropagation();
+      popup.style.display = "none";
+      overlay.style.display = "none";
+      conversationHistory = [];
+      // Remove the handler when popup is closed
+      document.removeEventListener("click", clickOutsideHandler, true);
+      clickOutsideHandler = null;
+    }
+  };
+  // Use capture phase to intercept clicks before they reach page elements
+  document.addEventListener("click", clickOutsideHandler, true);
   clickOutsideHandler = (event) => {
     // Only handle clicks outside the popup
     // Check if the click was inside the popup using composedPath for Shadow DOM support
@@ -1223,7 +1242,43 @@ document.addEventListener("keydown", async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (originalText) {
+            // Check for text selection in shadow DOM (popup) or regular document
+      const shadowSelection = shadowRoot.getSelection ? shadowRoot.getSelection() : null;
+      const documentSelection = window.getSelection();
+      
+      let selectedText = "";
+      let selectionSource = null;
+      
+      // Check shadow DOM selection first (popup)
+      if (shadowSelection && shadowSelection.toString().trim()) {
+        selectedText = shadowSelection.toString().trim();
+        selectionSource = "popup";
+      }
+      // Fall back to document selection
+      else if (documentSelection && documentSelection.toString().trim()) {
+        selectedText = documentSelection.toString().trim();
+        selectionSource = "document";
+      }
+      // Fall back to last selected text
+      else if (originalText) {
+        selectedText = originalText;
+        selectionSource = "cached";
+      }
+
+      if (selectedText) {
+        // Update the stored text if we have a new selection
+        if (selectionSource === "popup" || selectionSource === "document") {
+          lastSelectedText = selectedText;
+          originalText = selectedText;
+          // For popup selections, use minimal context
+          if (selectionSource === "popup") {
+            lastContextText = selectedText;
+          } else {
+            // Get context for document selections
+            const contextData = getContextAroundSelection();
+            lastContextText = contextData.fullContext;
+          }
+        }
         // Clear chat visually - keep conversation history for follow-ups
         chatContainer.innerHTML = "";
         // conversationHistory = []; // Keep history for follow-ups
