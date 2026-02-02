@@ -29,7 +29,7 @@ Keep only output portion!
 const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to as if it was STANDALONE. Short sentence, general language, 18+ allowed.`;
 
 // Concise system prompt for follow-ups
-const FOLLOWUP_SYSTEM_PROMPT = `You are a helpful assistant. The user previously selected some text from a webpage and you explained it. Now answer their follow-up questions about that same text. Keep responses concise and relevant. Reference the original text and your previous explanation when answering.`;
+const FOLLOWUP_SYSTEM_PROMPT = `The user previously selected some text from a webpage and you explained it. Now answer their follow-up questions about that same text. Do not use any formatting meaning bold/italics/quotes. Just plain correct English sentences.`;
 
 // Function to build conversation history prompt
 function buildConversationPrompt(conversationHistory, currentQuestion) {

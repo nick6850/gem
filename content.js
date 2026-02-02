@@ -1165,6 +1165,74 @@ let lastSelectedText = "";
 let lastContextText = "";
 let originalText = "";
 
+// Helper function to get context around selection inside the popup (shadow DOM)
+function getContextFromPopupSelection() {
+  // Use shadowRoot.getSelection() to get selection inside shadow DOM
+  if (typeof shadowRoot.getSelection !== 'function') {
+    return null;
+  }
+  
+  const selection = shadowRoot.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    return null;
+  }
+
+  const selectedText = selection.toString().trim();
+  if (!selectedText) {
+    return null;
+  }
+
+  // Get all text content from the chat container
+  const popupText = chatContainer.innerText || chatContainer.textContent || '';
+  
+  if (!popupText) {
+    return {
+      selectedText: selectedText,
+      contextBefore: '',
+      contextAfter: '',
+      fullContext: selectedText
+    };
+  }
+
+  // Find the selected text in the popup content
+  const selectedIndex = popupText.indexOf(selectedText);
+  
+  if (selectedIndex === -1) {
+    // If exact match not found, just return the selected text with minimal context
+    return {
+      selectedText: selectedText,
+      contextBefore: '',
+      contextAfter: '',
+      fullContext: selectedText
+    };
+  }
+
+  // Extract words around the selection (similar to extractWordBasedContext)
+  const windowSize = 15; // Number of words before and after
+  
+  // Get text before and after selection
+  const textBefore = popupText.substring(0, selectedIndex);
+  const textAfter = popupText.substring(selectedIndex + selectedText.length);
+  
+  // Split into words and get context
+  const wordsBefore = textBefore.trim().split(/\s+/).filter(w => w);
+  const wordsAfter = textAfter.trim().split(/\s+/).filter(w => w);
+  
+  const contextBefore = wordsBefore.slice(-windowSize).join(' ');
+  const contextAfter = wordsAfter.slice(0, windowSize).join(' ');
+  
+  const fullContext = [contextBefore, selectedText, contextAfter]
+    .filter(s => s)
+    .join(' ');
+
+  return {
+    selectedText: selectedText,
+    contextBefore: contextBefore,
+    contextAfter: contextAfter,
+    fullContext: fullContext
+  };
+}
+
 // Local LLM integration - function loaded from localLLM.js
 
 /////////////////////////////////////////////////////////////
@@ -1242,25 +1310,31 @@ document.addEventListener("keydown", async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-            // Check for text selection in shadow DOM (popup) or regular document
-      const shadowSelection = shadowRoot.getSelection ? shadowRoot.getSelection() : null;
-      const documentSelection = window.getSelection();
-      
+      // Check for text selection in shadow DOM (popup) or regular document
       let selectedText = "";
       let selectionSource = null;
       
-      // Check shadow DOM selection first (popup)
-      if (shadowSelection && shadowSelection.toString().trim()) {
-        selectedText = shadowSelection.toString().trim();
-        selectionSource = "popup";
+      // First, check if there's a selection inside the shadow DOM (popup)
+      // shadowRoot.getSelection() is the way to get selection inside shadow DOM
+      if (typeof shadowRoot.getSelection === 'function') {
+        const shadowSelection = shadowRoot.getSelection();
+        if (shadowSelection && shadowSelection.rangeCount > 0 && shadowSelection.toString().trim()) {
+          selectedText = shadowSelection.toString().trim();
+          selectionSource = "popup";
+        }
       }
-      // Fall back to document selection
-      else if (documentSelection && documentSelection.toString().trim()) {
-        selectedText = documentSelection.toString().trim();
-        selectionSource = "document";
+      
+      // If no shadow DOM selection, check regular document selection
+      if (!selectedText) {
+        const documentSelection = window.getSelection();
+        if (documentSelection && documentSelection.rangeCount > 0 && documentSelection.toString().trim()) {
+          selectedText = documentSelection.toString().trim();
+          selectionSource = "document";
+        }
       }
+      
       // Fall back to last selected text
-      else if (originalText) {
+      if (!selectedText && originalText) {
         selectedText = originalText;
         selectionSource = "cached";
       }
@@ -1270,9 +1344,12 @@ document.addEventListener("keydown", async (e) => {
         if (selectionSource === "popup" || selectionSource === "document") {
           lastSelectedText = selectedText;
           originalText = selectedText;
-          // For popup selections, use minimal context
+          // For popup selections, get context from within the popup
           if (selectionSource === "popup") {
-            lastContextText = selectedText;
+            const popupContext = getContextFromPopupSelection();
+            if (popupContext) {
+              lastContextText = popupContext.fullContext;
+            }
           } else {
             // Get context for document selections
             const contextData = getContextAroundSelection();
