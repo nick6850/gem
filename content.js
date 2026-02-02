@@ -996,7 +996,7 @@ function addMessage(text, isAI = false) {
     const playIcon = document.createElement("div");
     playIcon.style.cssText = `
       position: absolute !important;
-      bottom: 4px !important;
+      bottom: 7px !important;
       right: 7px !important;
       cursor: pointer !important;
       z-index: 1 !important;
