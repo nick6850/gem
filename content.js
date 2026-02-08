@@ -663,7 +663,7 @@ const popup = document.createElement("div");
 popup.className = "popup my-ai-helper-extension";
 popup.style.cssText = `
   position: fixed !important;
-  padding: 20px !important;
+  padding: 13px !important;
   background: white !important; 
   font-size: 14px !important;
   line-height: 1.5 !important;
@@ -775,7 +775,7 @@ const quickPromptsContainer = document.createElement("div");
 quickPromptsContainer.style.cssText = `
   display: flex !important;
   justify-content: center !important;
-  margin-top: 5px !important;
+  margin-top: 11px !important;
   gap: 5px !important;
 `;
 
@@ -799,7 +799,7 @@ const ruButton = createQuickPromptButton("RU");
 const contextButton = createQuickPromptButton("Context");
 const exampleButton = createQuickPromptButton("Example");
 const sentenceButton = createQuickPromptButton("Sentence");
-const expandButton = createQuickPromptButton("Expand");
+const expandButton = createQuickPromptButton("More");
 const simplifyButton = createQuickPromptButton("Simplify");
 const shortifyButton = createQuickPromptButton("Shortify");
 const culturalBackgroundButton = createQuickPromptButton("Culture");
@@ -868,9 +868,9 @@ shortifyButton.addEventListener("click", createQuickPromptCallback(
 
 
 expandButton.addEventListener("click", createQuickPromptCallback(
-  "Expand",
-  "Give more info on that word. Use 1 sentence.",
-  "Expand"
+  "More",
+  "More.",
+  "More."
 ));
 
 culturalBackgroundButton.addEventListener("click", createQuickPromptCallback(
@@ -977,7 +977,6 @@ function addMessage(text, isAI = false) {
     `
         : `
       background: #e3f2fd !important;
-      margin-left: auto !important;
     `
     }
   `;
