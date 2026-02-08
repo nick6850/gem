@@ -670,7 +670,8 @@ popup.style.cssText = `
   border: 1px solid #e0e0e0 !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-  width: 270px !important;
+  width: min(332px, calc(100vw - 40px)) !important;
+  max-width: calc(100vw - 40px) !important;
   z-index: 10001 !important; 
   display: none !important;
   color: #333 !important;
@@ -678,9 +679,8 @@ popup.style.cssText = `
   overflow-x: hidden !important;
   max-height: min(350px, calc(100vh - 40px)) !important;
   text-align: left !important;
-    pointer-events: auto !important;
-  -webkit-font-smoothing: antialiased !important;
-    pointer-events: auto !important;
+  box-sizing: border-box !important;
+  pointer-events: auto !important;
   -webkit-font-smoothing: antialiased !important;
   overscroll-behavior: contain !important;
 `;
@@ -798,6 +798,7 @@ const createQuickPromptButton = (textContent) => {
 const ruButton = createQuickPromptButton("RU");
 const contextButton = createQuickPromptButton("Context");
 const exampleButton = createQuickPromptButton("Example");
+const sentenceButton = createQuickPromptButton("Sentence");
 const expandButton = createQuickPromptButton("Expand");
 const simplifyButton = createQuickPromptButton("Simplify");
 const shortifyButton = createQuickPromptButton("Shortify");
@@ -853,7 +854,7 @@ contextButton.addEventListener("click", createQuickPromptCallback(
   "What does it mean in this context?"
 ))
 
-exampleButton.addEventListener("click", createQuickPromptCallback(
+sentenceButton.addEventListener("click", createQuickPromptCallback(
   "Use it in a sentence",
   "I am an English learner. Create a sentence using the selected word to demonstrate it once more (like they do in dictionaries). Return just that sentence",
   "Use it in another sentence."
@@ -890,12 +891,18 @@ simplifyButton.addEventListener("click", createQuickPromptCallback(
   "Simpler explanation"
 ));
 
+exampleButton.addEventListener("click", createQuickPromptCallback(
+  "For example?",
+  "For example?",
+  "Example"
+));
+
 quickPromptsContainer.appendChild(ruButton);
-quickPromptsContainer.appendChild(contextButton);
 quickPromptsContainer.appendChild(exampleButton);
+quickPromptsContainer.appendChild(contextButton);
+quickPromptsContainer.appendChild(sentenceButton);
 quickPromptsContainer.appendChild(culturalBackgroundButton);
 quickPromptsContainer.appendChild(originButton);
-quickPromptsContainer.appendChild(shortifyButton);
 quickPromptsContainer.appendChild(expandButton);
 quickPromptsContainer.appendChild(simplifyButton);
 popup.appendChild(quickPromptsContainer);
@@ -1095,18 +1102,26 @@ function removeSecondSentence(text) {
 function positionPopup() {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
-  const popupHeight = popup.offsetHeight;
-  const popupWidth = popup.offsetWidth;
+  const margin = 20;
 
-  // Calculate the center position
-  const left = (viewportWidth - popupWidth) / 2;
-  const top = (viewportHeight - popupHeight) / 2;
+  popup.style.display = "block";
+  popup.style.visibility = "hidden";
+  overlay.style.display = "block";
+
+  const popupRect = popup.getBoundingClientRect();
+  const popupHeight = popupRect.height;
+  const popupWidth = popupRect.width;
+
+  // Calculate the center position and clamp to viewport
+  let left = (viewportWidth - popupWidth) / 2;
+  let top = (viewportHeight - popupHeight) / 2;
+  left = Math.max(margin, Math.min(left, viewportWidth - popupWidth - margin));
+  top = Math.max(margin, Math.min(top, viewportHeight - popupHeight - margin));
 
   // Set the popup's position
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-  popup.style.display = "block";
-  overlay.style.display = "block";
+  popup.style.left = `${Math.round(left)}px`;
+  popup.style.top = `${Math.round(top)}px`;
+  popup.style.visibility = "visible";
   
   // Enable click outside to close functionality
   enableClickOutsideClose();
@@ -1117,14 +1132,18 @@ window.addEventListener('resize', () => {
   if (popup.style.display !== 'none') {
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    const popupHeight = popup.offsetHeight;
-    const popupWidth = popup.offsetWidth;
+    const margin = 20;
+    const popupRect = popup.getBoundingClientRect();
+    const popupHeight = popupRect.height;
+    const popupWidth = popupRect.width;
 
-    const left = (viewportWidth - popupWidth) / 2;
-    const top = (viewportHeight - popupHeight) / 2;
+    let left = (viewportWidth - popupWidth) / 2;
+    let top = (viewportHeight - popupHeight) / 2;
+    left = Math.max(margin, Math.min(left, viewportWidth - popupWidth - margin));
+    top = Math.max(margin, Math.min(top, viewportHeight - popupHeight - margin));
 
-    popup.style.left = `${left}px`;
-    popup.style.top = `${top}px`;
+    popup.style.left = `${Math.round(left)}px`;
+    popup.style.top = `${Math.round(top)}px`;
   }
 });
 
