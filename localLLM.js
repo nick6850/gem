@@ -27,7 +27,7 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
       },
       {
         role: "user",
-        content: `${initialPrompt}\n\nSelected text: "${selectedText}"\nContext: "${context}"`,
+        content: initialPrompt,
       },
     ];
   }

@@ -5,7 +5,7 @@ let conversationHistory = [];
 
 // == LLM Provider Configuration ==
 // Current LLM provider: 'local' or 'gemini'
-let currentLLMProvider = 'gemini';
+let currentLLMProvider = 'local'; // Default to local LLM
 
 // == Movie Mode Configuration ==
 // When enabled, prompts are optimized for movie subtitles
@@ -722,25 +722,8 @@ function enableClickOutsideClose() {
     // Check if the click was inside the popup using composedPath for Shadow DOM support
     const path = event.composedPath();
     if (!path.includes(popup) && popup.style.display === "block") {
-      event.preventDefault();
-      event.stopPropagation();
-      popup.style.display = "none";
-      overlay.style.display = "none";
-      conversationHistory = [];
-      // Remove the handler when popup is closed
-      document.removeEventListener("click", clickOutsideHandler, true);
-      clickOutsideHandler = null;
-    }
-  };
-  // Use capture phase to intercept clicks before they reach page elements
-  document.addEventListener("click", clickOutsideHandler, true);
-  clickOutsideHandler = (event) => {
-    // Only handle clicks outside the popup
-    // Check if the click was inside the popup using composedPath for Shadow DOM support
-    const path = event.composedPath();
-    if (!path.includes(popup) && popup.style.display === "block") {
-      event.preventDefault();
-      event.stopPropagation();
+      // Don't preventDefault - this interferes with text selection on the page
+      // Just close the popup and let the click proceed normally
       popup.style.display = "none";
       overlay.style.display = "none";
       conversationHistory = [];
@@ -1257,6 +1240,12 @@ function getContextFromPopupSelection() {
 // == Capture user's text selection, now with full page text
 /////////////////////////////////////////////////////////////
 document.addEventListener("selectionchange", () => {
+  // Don't process selection changes while user is actively selecting (mouse is down)
+  // This prevents DOM manipulation from interfering with the selection process
+  if (isLeftMouseDown) {
+    return;
+  }
+
   const selection = window.getSelection();
   const selectedText = selection.toString().trim();
 
@@ -1590,12 +1579,13 @@ input.addEventListener("keypress", (e) => {
 /////////////////////////////////////////////////////////////
 
 // Handle clicks on floating button visibility
+// Use normal event phase (not capture) to avoid interfering with page interactions
 document.addEventListener("click", (event) => {
   // If click is not on the floating button, hide it (only when popup is closed)
   if (popup.style.display !== "block" && !floatingButton.contains(event.target)) {
     floatingButton.style.display = "none";
   }
-}, true);
+});
 
 // Allow all keyboard events to work normally when popup is open
 

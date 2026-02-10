@@ -25,7 +25,7 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
     conversationHistory = [
       {
         role: "user",
-        content: `${initialPrompt}\n\nSelected text: "${selectedText}"\nContext: "${context}"`,
+        content: initialPrompt,
       },
     ];
   }
