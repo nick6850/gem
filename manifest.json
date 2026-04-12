@@ -20,7 +20,8 @@
   },
  "host_permissions": [
    "https://api.murf.ai/*",
-   "https://translate.google.com/*"
+   "https://translate.google.com/*",
+   "http://localhost:11434/*"
  ],
   "content_scripts": [
     {

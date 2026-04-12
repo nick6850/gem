@@ -1,6 +1,6 @@
 // == Local LLM API details ==
 async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
-  const API_ENDPOINT = "http://localhost:1234/v1/chat/completions";
+  const API_ENDPOINT = "http://localhost:11434/api/chat";
 
   if (!selectedText.trim() && !isFollowUp) {
     throw new Error("Empty selected text provided");
@@ -40,11 +40,14 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
 
   try {
     const requestBody = {
-      model: "deepseek-llm-7b-chat",
+      model: "gemma4:26b",
       messages: messages,
-      temperature: 0,
-      max_tokens: 10000,
       stream: false,
+      think: false,
+      options: {
+        temperature: 0,
+        num_predict: 500,
+      },
     };
 
     console.log("📤 Sending to Local LLM. Conversation history length:", conversationHistory.length);
@@ -71,13 +74,13 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
     const data = await response.json();
     console.log("Local LLM Response data:", data);
 
-    if (!data.choices?.[0]?.message?.content) {
+    if (!data.message?.content) {
       console.error("Invalid local LLM response format:", data);
       throw new Error("Invalid response format from local LLM");
     }
 
     // Capture the AI's reply in conversation history
-    const aiReply = data.choices[0].message.content;
+    const aiReply = data.message.content;
     conversationHistory.push({
       role: "assistant",
       content: aiReply,

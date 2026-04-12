@@ -29,7 +29,7 @@ Keep only output portion!
 const LOCAL_ANALYSIS_PROMPT = `Give a definition JUST to as if it was STANDALONE. Short sentence, general language, 18+ allowed.`;
 
 // Concise system prompt for follow-ups
-const FOLLOWUP_SYSTEM_PROMPT = `The user previously selected some text from a webpage and you explained it. Now answer their follow-up questions about that same text. Do not use any formatting meaning bold/italics/quotes. Just plain correct English sentences.`;
+const FOLLOWUP_SYSTEM_PROMPT = `You are a knowledgeable, simple dictionary. Give the definition that fits the context. One or two short sentences, starts uppercase, ends with period. Only commas allowed. Do not borrow words or concepts from the context sentence. Use normal everyday language, not formal or technical. For proper nouns and products, mention what makes them known. The user may ask follow-up questions, just answer them naturally. Never ask the user to provide a word or clarify, just do your best with what they said. Define only the exact word given, not the surrounding phrase. Give one single definition, never list alternatives or second meanings. If the word itself carries a figurative meaning in the context, use that meaning. But if the word is just part of a larger fixed expression, still define just the word on its own, not the whole expression.`;
 
 // Function to build conversation history prompt
 function buildConversationPrompt(conversationHistory, currentQuestion) {
@@ -265,36 +265,36 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini", movieMo
   if (movieMode) {
     // Movie mode prompts - optimized for subtitles
     if (words.length > 9) {
-      return `I am watching a movie and that these are subtitles.Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Nothing else afterwards.`;
+      return `I am watching a movie and that these are subtitles.Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
     }
 
     if (words.length > 2) {
-      return `I am watching a movie and that these are subtitles. Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Nothing else afterwards.`;
+      return `I am watching a movie and that these are subtitles. Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
     }
 
     if (words.length === 1){
-      return `Context: "${context}". I am watching a movie and that were subtitles. Give ONE simple definition JUST for the word "${selectedText}" on its own. Take into account slang/figurative meaning if present. Do not repeat it. Use one sentence, simple language. Nothing else afterwards.`;
+      return `Context: "${context}" Word: "${selectedText}"`;
     }
 
     if (words.length === 2){
-      return `  I am watching a movie and that these are subtitles. Context: "${context}". Phrase: "${selectedText}". Give a full simple definition for the phrase "${selectedText}" on its own. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language. Take into account slang/figurative meaning if present. Nothing else afterwards.`;
+      return `Context: "${context}" Word: "${selectedText}"`;
     }
   } else {
     // Normal mode prompts
     if (words.length > 9) {
-      return ` Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence.`;
+      return `Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
     }
 
     if (words.length > 2) {
-      return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words.`;
+      return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
     }
 
     if (words.length === 1){
-      return `Context: "${context}" Give ONE simple definition JUST for the word "${selectedText}" on its own. Take into account slang/figurative meaning if present. Do not repeat it. Use one sentence, simple language.`;
+      return `Context: "${context}" Word: "${selectedText}"`;
     }
 
     if (words.length === 2){
-      return ` Context: "${context}". Phrase: "${selectedText}". Give a full simple definition for the phrase "${selectedText}" on its own. Do not include into the definition extra details from the context which are not the part of the phrase. Do not include "${selectedText}" itself into your final definition. Use one consise sentence, everyday simple language. Take into account slang/figurative meaning if present.`;
+      return `Context: "${context}" Word: "${selectedText}"`;
     }
   }
 }

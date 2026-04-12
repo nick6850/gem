@@ -928,6 +928,33 @@ input.addEventListener("keypress", (e) => {
 
 inputContainer.appendChild(input);
 popup.appendChild(inputContainer);
+
+// Debug copy button - copies full conversation history to clipboard
+const debugBtn = document.createElement("div");
+debugBtn.textContent = "d";
+debugBtn.title = "Copy conversation history to clipboard";
+debugBtn.style.cssText = `
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 8px !important;
+  color: #ccc !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 3px !important;
+`;
+debugBtn.addEventListener("click", () => {
+  const dump = conversationHistory.map(m => m.role + ': ' + m.content).join('\n\n');
+  navigator.clipboard.writeText(dump || 'no history');
+  debugBtn.textContent = "ok";
+  setTimeout(() => debugBtn.textContent = "d", 800);
+});
+popup.appendChild(debugBtn);
+
 shadowRoot.appendChild(popup);
 
 /////////////////////////////////////////////////////////////
@@ -963,20 +990,26 @@ function addMessage(text, isAI = false) {
     `
     }
   `;
-  const formattedText = text
-    // // First escape HTML tags so they display as plain text
-    // .replace(/</g, "&lt;")
-    // .replace(/>/g, "&gt;")
-    // // Then apply markdown formatting
-    // .replace(/\*\*(.*?)\*\*|__(.*?)__/gs, "<strong>$1$2</strong>")
-    // .replace(/\*(.*?)\*|_(.*?)_/gs, "<em>$1$2</em>")
-    // // Format code blocks with triple backticks
-    // .replace(/```([^`]+)```/gs, '<pre style="background: #f0f0f0; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 0.9em; white-space: pre-wrap; margin: 4px 0;">$1</pre>')
-    // // Format inline code with single backticks
-    // .replace(/`([^`]+)`/g, '<code style="background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em;">$1</code>')
-    // // Remove empty newlines but keep a break line before the second part
-    // .replace(/\n{2,}/g, "\n") // Remove extra newlines (more than one in a row)
-    // .replace(/\n/g, "<br>"); // Replace single newlines with <br> for the necessary breaks
+  // Extract code blocks first (before HTML escaping) so their contents are escaped separately
+  const codeBlocks = [];
+  let working = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const escaped = code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const langLabel = lang ? `<div style="font-size: 10px !important; color: #888 !important; padding: 6px 10px 0 10px !important; font-family: ui-sans-serif !important;">${lang}</div>` : '';
+    const block = `<div style="background: #1e1e1e !important; border-radius: 6px !important; margin: 6px 0 !important; overflow: hidden !important;">${langLabel}<pre style="margin: 0 !important; padding: 10px !important; overflow-x: auto !important; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace !important; font-size: 12px !important; line-height: 1.4 !important; color: #e4e4e4 !important; white-space: pre !important;">${escaped}</pre></div>`;
+    codeBlocks.push(block);
+    return `\x00CODE${codeBlocks.length - 1}\x00`;
+  });
+
+  // Escape remaining HTML, handle inline code, then line breaks
+  working = working
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/`([^`\n]+)`/g, '<code style="background: #f0f0f0 !important; padding: 1px 5px !important; border-radius: 3px !important; font-family: ui-monospace, Menlo, monospace !important; font-size: 12px !important;">$1</code>')
+    .replace(/\n{2,}/g, "\n")
+    .replace(/\n/g, "<br>");
+
+  // Restore code blocks
+  const formattedText = working.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[parseInt(i)]);
 
   messageDiv.innerHTML = formattedText;
 
@@ -1616,4 +1649,5 @@ document.addEventListener('keydown', function(event) {
     
     console.log(`🎬 Movie mode ${movieModeEnabled ? 'ENABLED' : 'DISABLED'}`);
   }
+
 });
