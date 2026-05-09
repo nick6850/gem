@@ -4,8 +4,8 @@
 let conversationHistory = [];
 
 // == LLM Provider Configuration ==
-// Current LLM provider: 'local' or 'gemini'
-let currentLLMProvider = 'local'; // Default to local LLM
+// Current LLM provider: 'openai', 'local', or 'gemini'
+let currentLLMProvider = globalThis.GEM_CONFIG?.defaultProvider || 'openai';
 
 // == Movie Mode Configuration ==
 // When enabled, prompts are optimized for movie subtitles
@@ -19,34 +19,37 @@ let sentenceContextCount = 1;
 // Wrapper function that routes to the appropriate LLM with fallback
 async function analyzeText(selectedText, context, isFollowUp = false) {
   const originalProvider = currentLLMProvider;
+  const providerHandlers = {
+    openai: analyzeWithOpenAILLM,
+    local: analyzeWithLocalLLM,
+    gemini: analyzeWithGeminiLLM,
+  };
+  const fallbackOrder = {
+    openai: ['local', 'gemini'],
+    local: ['openai', 'gemini'],
+    gemini: ['openai', 'local'],
+  };
   
   try {
-    // Try the current LLM provider first
-    if (currentLLMProvider === 'local') {
-      return await analyzeWithLocalLLM(selectedText, context, isFollowUp);
-    } else if (currentLLMProvider === 'gemini') {
-      return await analyzeWithGeminiLLM(selectedText, context, isFollowUp);
-    } else {
+    const primaryHandler = providerHandlers[currentLLMProvider];
+    if (!primaryHandler) {
       throw new Error(`Unknown LLM provider: ${currentLLMProvider}`);
     }
+    return await primaryHandler(selectedText, context, isFollowUp);
   } catch (error) {
     console.warn(`${originalProvider} LLM failed, trying fallback:`, error);
     
-    // Try the alternate LLM provider as fallback
-    try {
-      const fallbackProvider = originalProvider === 'local' ? 'gemini' : 'local';
-      console.log(`Falling back to ${fallbackProvider} LLM`);
-      
-      if (fallbackProvider === 'local') {
-        return await analyzeWithLocalLLM(selectedText, context, isFollowUp);
-      } else {
-        return await analyzeWithGeminiLLM(selectedText, context, isFollowUp);
+    const fallbacks = fallbackOrder[originalProvider] || [];
+    for (const fallbackProvider of fallbacks) {
+      try {
+        console.log(`Falling back to ${fallbackProvider} LLM`);
+        return await providerHandlers[fallbackProvider](selectedText, context, isFollowUp);
+      } catch (fallbackError) {
+        console.error(`Fallback ${fallbackProvider} failed:`, fallbackError);
       }
-    } catch (fallbackError) {
-      console.error(`Both LLM providers failed. Original error:`, error, `Fallback error:`, fallbackError);
-      // Throw the original error since that was the primary attempt
-      throw new Error(`Both ${originalProvider} and fallback LLM failed. Primary error: ${error.message}`);
     }
+
+    throw new Error(`All LLM providers failed. Primary provider: ${originalProvider}. Primary error: ${error.message}`);
   }
 }
 
@@ -610,12 +613,15 @@ notificationDiv.style.cssText = `
 
 // Function to show notification
 function showProviderNotification(provider) {
-  const providerName = provider === 'local' ? 'Local LLM' : 'Gemini AI';
-  const color = provider === 'local' ? '#ff6b35' : '#4285f4';
-  const emoji = provider === 'local' ? '🏠' : '🤖';
+  const providerMeta = {
+    openai: { name: 'OpenAI', color: '#10a37f', emoji: 'AI' },
+    local: { name: 'Local LLM', color: '#ff6b35', emoji: 'L' },
+    gemini: { name: 'Gemini AI', color: '#4285f4', emoji: 'G' },
+  };
+  const meta = providerMeta[provider] || providerMeta.openai;
 
-  notificationDiv.innerHTML = `${emoji} Switched to ${providerName}`;
-  notificationDiv.style.borderColor = color;
+  notificationDiv.innerHTML = `${meta.emoji} Switched to ${meta.name}`;
+  notificationDiv.style.borderColor = meta.color;
   notificationDiv.style.display = 'block';
 
   // Hide after 2 seconds
@@ -645,15 +651,15 @@ shadowRoot.appendChild(notificationDiv);
 
 // Make setLLMProvider function available globally
 window.setLLMProvider = function(provider) {
-  if (provider === 'local' || provider === 'gemini') {
+  if (provider === 'openai' || provider === 'local' || provider === 'gemini') {
     currentLLMProvider = provider;
     console.log(`✅ Switched to ${provider.toUpperCase()} LLM provider`);
-    console.log(`💡 Switch providers: Ctrl/Cmd+Shift+P or use setLLMProvider('local'/'gemini')`);
+    console.log(`💡 Switch providers: Ctrl/Cmd+1 or use setLLMProvider('openai'/'local'/'gemini')`);
 
     // Show notification
     showProviderNotification(provider);
   } else {
-    console.error(`❌ Invalid provider: ${provider}. Use 'local' or 'gemini'`);
+    console.error(`❌ Invalid provider: ${provider}. Use 'openai', 'local', or 'gemini'`);
   }
 };
 
@@ -1622,15 +1628,16 @@ document.addEventListener("click", (event) => {
 
 // Allow all keyboard events to work normally when popup is open
 
-// Keyboard shortcut to switch LLM providers (Ctrl/Cmd + Shift + P)
+// Keyboard shortcut to switch LLM providers (Ctrl/Cmd + 1)
 document.addEventListener('keydown', function(event) {
-  // Check for Ctrl+1 or Cmd+1
+  const providerCycle = ['openai', 'local', 'gemini'];
+
   if ((event.ctrlKey || event.metaKey) && event.key === '1') {
     event.preventDefault();
     event.stopPropagation();
 
-    // Switch to the other provider
-    const newProvider = currentLLMProvider === 'local' ? 'gemini' : 'local';
+    const currentIndex = providerCycle.indexOf(currentLLMProvider);
+    const newProvider = providerCycle[(currentIndex + 1) % providerCycle.length];
     setLLMProvider(newProvider);
 
     console.log(`🔄 Keyboard shortcut activated - switching to ${newProvider.toUpperCase()}`);

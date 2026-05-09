@@ -20,13 +20,14 @@
   },
  "host_permissions": [
    "https://api.murf.ai/*",
+   "https://api.openai.com/*",
    "https://translate.google.com/*",
    "http://localhost:11434/*"
  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["prompts.js", "content.js", "localLLM.js", "geminiLLM.js", "offscreen.js"],
+      "js": ["config.js", "prompts.js", "content.js", "localLLM.js", "geminiLLM.js", "openaiLLM.js", "offscreen.js"],
       "all_frames": true
     }
   ],
