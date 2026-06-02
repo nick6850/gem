@@ -4,31 +4,13 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";
   const API_KEY = "AIzaSyC9jnmAh_cyvg0hNa5bejNtKGRhkDC4noE"; // DONT DELETE
 
-  if (!selectedText.trim() && !isFollowUp) {
-    throw new Error("Empty selected text provided");
-  }
-
-  ///////////////////////////////////////////
-  // == Build or update the conversation ==
-  ///////////////////////////////////////////
-  
-  if (isFollowUp) {
-    // User follow-up question - add to conversation history
-    conversationHistory.push({
-      role: "user",
-      content: selectedText,
-    });
-  } else {
-    // First time analysis - build initial prompt and start fresh history
-    const initialPrompt = buildAnalysisPrompt(selectedText, context, 'gemini', movieModeEnabled);
-    
-    conversationHistory = [
-      {
-        role: "user",
-        content: initialPrompt,
-      },
-    ];
-  }
+  beginConversationTurn({
+    selectedText,
+    context,
+    isFollowUp,
+    promptProvider: "gemini",
+    includeSystemMessage: false,
+  });
 
   // Build Gemini-format contents array from conversation history
   const contents = conversationHistory.map(msg => ({
@@ -105,22 +87,15 @@ async function analyzeWithGeminiLLM(selectedText, context, isFollowUp = false) {
       throw new Error("Invalid response format from API");
     }
 
-    // Capture the AI's reply in conversation history
     const aiReply = data.candidates[0].content.parts[0].text;
-    conversationHistory.push({
-      role: "assistant",
-      content: aiReply,
-    });
+    appendAssistantReply(aiReply);
 
     console.log("📥 Conversation history after response:", conversationHistory.length, "messages");
 
     return aiReply;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    // Remove the last user message from history if the API call failed
-    if (isFollowUp && conversationHistory.length > 0) {
-      conversationHistory.pop();
-    }
-    throw error; // Re-throw to handle in the calling function
+    rollbackFollowUpTurn(isFollowUp);
+    throw error;
   }
 }

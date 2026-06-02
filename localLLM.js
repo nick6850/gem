@@ -2,41 +2,15 @@
 async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
   const API_ENDPOINT = "http://localhost:11434/api/chat";
 
-  if (!selectedText.trim() && !isFollowUp) {
-    throw new Error("Empty selected text provided");
-  }
+  beginConversationTurn({
+    selectedText,
+    context,
+    isFollowUp,
+    promptProvider: "local",
+    includeSystemMessage: true,
+  });
 
-  ///////////////////////////////////////////
-  // == Build or update the conversation ==
-  ///////////////////////////////////////////
-
-  if (isFollowUp) {
-    // User follow-up question - add to conversation history
-    conversationHistory.push({
-      role: "user",
-      content: selectedText,
-    });
-  } else {
-    // First time analysis - build initial prompt and start fresh history
-    const initialPrompt = buildAnalysisPrompt(selectedText, context, 'local', movieModeEnabled);
-
-    conversationHistory = [
-      {
-        role: "system",
-        content: FOLLOWUP_SYSTEM_PROMPT,
-      },
-      {
-        role: "user",
-        content: initialPrompt,
-      },
-    ];
-  }
-
-  // Build messages array for OpenAI-compatible API (includes full history)
-  const messages = conversationHistory.map(msg => ({
-    role: msg.role,
-    content: msg.content
-  }));
+  const messages = toPlainConversationMessages();
 
   try {
     const requestBody = {
@@ -79,22 +53,15 @@ async function analyzeWithLocalLLM(selectedText, context, isFollowUp = false) {
       throw new Error("Invalid response format from local LLM");
     }
 
-    // Capture the AI's reply in conversation history
     const aiReply = data.message.content;
-    conversationHistory.push({
-      role: "assistant",
-      content: aiReply,
-    });
+    appendAssistantReply(aiReply);
 
     console.log("📥 Conversation history after response:", conversationHistory.length, "messages");
 
     return aiReply;
   } catch (error) {
     console.error("Local LLM Error:", error);
-    // Remove the last user message from history if the API call failed
-    if (isFollowUp && conversationHistory.length > 0) {
-      conversationHistory.pop();
-    }
-    throw error; // Re-throw to handle in the calling function
+    rollbackFollowUpTurn(isFollowUp);
+    throw error;
   }
 }

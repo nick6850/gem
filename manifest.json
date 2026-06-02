@@ -27,7 +27,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["config.js", "prompts.js", "content.js", "localLLM.js", "geminiLLM.js", "openaiLLM.js", "offscreen.js"],
+      "js": ["config.js", "prompts.js", "content-state.js", "content-context.js", "content-quick-prompts.js", "content-youtube.js", "content-ui.js", "localLLM.js", "geminiLLM.js", "openaiLLM.js", "content-app.js", "content.js", "offscreen.js"],
       "all_frames": true
     }
   ],

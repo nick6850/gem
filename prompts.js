@@ -262,40 +262,19 @@ function buildAnalysisPrompt(selectedText, context, provider = "gemini", movieMo
     .split(/\s+/)
     .filter((word) => word.length > 0 && !utilityWords.includes(word));
 
-  if (movieMode) {
-    // Movie mode prompts - optimized for subtitles
-    if (words.length > 9) {
-      return `I am watching a movie and that these are subtitles.Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
-    }
+  if (words.length <= 2 && words.length > 0) {
+    return `Context: "${context}" Word: "${selectedText}"`;
+  }
 
-    if (words.length > 2) {
-      return `I am watching a movie and that these are subtitles. Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
-    }
+  const moviePrefix = movieMode ? "I am watching a movie and that these are subtitles." : "";
 
-    if (words.length === 1){
-      return `Context: "${context}" Word: "${selectedText}"`;
-    }
+  if (words.length > 9) {
+    return `${moviePrefix}Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
+  }
 
-    if (words.length === 2){
-      return `Context: "${context}" Word: "${selectedText}"`;
-    }
-  } else {
-    // Normal mode prompts
-    if (words.length > 9) {
-      return `Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
-    }
-
-    if (words.length > 2) {
-      return `Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
-    }
-
-    if (words.length === 1){
-      return `Context: "${context}" Word: "${selectedText}"`;
-    }
-
-    if (words.length === 2){
-      return `Context: "${context}" Word: "${selectedText}"`;
-    }
+  if (words.length > 2) {
+    const prefix = movieMode ? `${moviePrefix} ` : "";
+    return `${prefix}Selected: "${selectedText}". Context: "${context}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
   }
 }
 

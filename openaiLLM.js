@@ -39,43 +39,20 @@ async function analyzeWithOpenAILLM(selectedText, context, isFollowUp = false) {
   const API_ENDPOINT = "https://api.openai.com/v1/responses";
   const { apiKey, model, reasoningEffort } = getOpenAIConfig();
 
-  if (!selectedText.trim() && !isFollowUp) {
-    throw new Error("Empty selected text provided");
-  }
+  beginConversationTurn({
+    selectedText,
+    context,
+    isFollowUp,
+    promptProvider: "local",
+    includeSystemMessage: true,
+  });
 
-  if (isFollowUp) {
-    conversationHistory.push({
-      role: "user",
-      content: selectedText,
-    });
-  } else {
-    const initialPrompt = buildAnalysisPrompt(
-      selectedText,
-      context,
-      "local",
-      movieModeEnabled
-    );
-
-    conversationHistory = [
-      {
-        role: "system",
-        content: FOLLOWUP_SYSTEM_PROMPT,
-      },
-      {
-        role: "user",
-        content: initialPrompt,
-      },
-    ];
-  }
-
-  const input = conversationHistory.map((msg) => ({
-    role: msg.role,
-    content: [{ type: "input_text", text: msg.content }],
-  }));
+  const input = toPlainConversationMessages({ includeSystem: false });
 
   try {
     const requestBody = {
       model,
+      instructions: FOLLOWUP_SYSTEM_PROMPT,
       input,
       reasoning: {
         effort: reasoningEffort,
@@ -110,17 +87,12 @@ async function analyzeWithOpenAILLM(selectedText, context, isFollowUp = false) {
       throw new Error("Invalid response format from OpenAI");
     }
 
-    conversationHistory.push({
-      role: "assistant",
-      content: aiReply,
-    });
+    appendAssistantReply(aiReply);
 
     return aiReply;
   } catch (error) {
     console.error("OpenAI API Error:", error);
-    if (isFollowUp && conversationHistory.length > 0) {
-      conversationHistory.pop();
-    }
+    rollbackFollowUpTurn(isFollowUp);
     throw error;
   }
 }
