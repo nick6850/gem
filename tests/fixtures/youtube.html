@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>YouTube Caption Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .html5-video-player {
+        width: 640px;
+        height: 360px;
+        background: #111;
+      }
+
+      .ytp-caption-window-container {
+        position: absolute;
+        left: 100px;
+        bottom: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="html5-video-player">
+      <div class="ytp-caption-window-container">
+        <div class="caption-window ytp-caption-window-rollup">
+          <span class="caption-visual-line">
+            <span class="ytp-caption-segment"><span class="ytp-caption-text">Selectable caption text</span></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <script src="/dist/content.js"></script>
+  </body>
+</html>

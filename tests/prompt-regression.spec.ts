@@ -46,4 +46,10 @@ test.describe("prompt builders", () => {
     expect(prompt).toContain("USER FOLLOW-UP: more casual?");
     expect(prompt.endsWith("YOUR RESPONSE:")).toBe(true);
   });
+
+  test("nudges code contexts toward programming definitions", async ({ page }) => {
+    const systemPrompt = await page.evaluate(() => window.FOLLOWUP_SYSTEM_PROMPT);
+
+    expect(systemPrompt).toContain("Code context, use the programming meaning.");
+  });
 });

@@ -5,21 +5,32 @@ test.describe("OpenAI provider", () => {
   test("builds response API request and conversation history", async ({ page }) => {
     await loadExtensionPage(page, { responses: ["Performed perfectly."] });
 
-    const result = await page.evaluate(() => analyzeWithOpenAILLM("nailed", "She nailed it.", false));
-    const calls = await page.evaluate(() => globalThis.__fetchCalls);
+    const result = await page.evaluate(() => window.analyzeWithOpenAILLM("nailed", "She nailed it.", false));
+    const calls = await page.evaluate(
+      () =>
+        globalThis.__fetchCalls as Array<{
+          url: string;
+          options: { body: Record<string, unknown> };
+        }>
+    );
 
     expect(result).toBe("Performed perfectly.");
     expect(calls).toHaveLength(1);
-    expect(calls[0].url).toBe("https://api.openai.com/v1/responses");
+    const [call] = calls;
+    if (!call) {
+      throw new Error("Expected one fetch call");
+    }
+
+    expect(call.url).toBe("https://api.openai.com/v1/responses");
     const followupSystemPrompt = await page.evaluate(() => window.FOLLOWUP_SYSTEM_PROMPT);
-    expect(calls[0].options.body).toMatchObject({
+    expect(call.options.body).toMatchObject({
       model: "test-openai-model",
       instructions: followupSystemPrompt,
       reasoning: { effort: "low" },
       max_output_tokens: 500,
       text: { verbosity: "low" },
     });
-    expect(calls[0].options.body.input).toEqual([
+    expect(call.options.body.input).toEqual([
       { role: "user", content: 'Context: "She nailed it." Word: "nailed"' },
     ]);
   });
@@ -27,7 +38,7 @@ test.describe("OpenAI provider", () => {
   test("extracts nested response text fallback", async ({ page }) => {
     await loadExtensionPage(page);
 
-    const text = await page.evaluate(() => extractOpenAIText({
+    const text = await page.evaluate(() => window.extractOpenAIText({
       output: [
         {
           type: "message",

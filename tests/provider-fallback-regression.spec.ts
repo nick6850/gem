@@ -7,8 +7,9 @@ test.describe("provider fallback", () => {
 
     await page.evaluate(() => {
       globalThis.__fetchCalls = [];
-      globalThis.fetch = async (url, options = {}) => {
-        const body = options.body ? JSON.parse(options.body) : null;
+      globalThis.fetch = (async (url: RequestInfo | URL, options: RequestInit = {}) => {
+        const body = options.body ? JSON.parse(String(options.body)) : null;
+        globalThis.__fetchCalls ??= [];
         globalThis.__fetchCalls.push({ url: String(url), options: { ...options, body } });
 
         if (String(url).includes("localhost:11434")) {
@@ -34,12 +35,14 @@ test.describe("provider fallback", () => {
             return JSON.stringify({ output_text: "Fallback answer." });
           },
         };
-      };
+      }) as typeof fetch;
     });
 
     await page.evaluate(() => window.setLLMProvider("local"));
-    const result = await page.evaluate(() => analyzeText("nailed", "She nailed it.", false));
-    const calls = await page.evaluate(() => globalThis.__fetchCalls.map((call) => call.url));
+    const result = await page.evaluate(() => window.analyzeText("nailed", "She nailed it.", false));
+    const calls = await page.evaluate(() =>
+      (globalThis.__fetchCalls as Array<{ url: string }>).map((call) => call.url)
+    );
 
     expect(result).toBe("Fallback answer.");
     expect(calls).toEqual([

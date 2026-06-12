@@ -2,13 +2,13 @@
   "manifest_version": 3,
   "name": "Text Analyzer",
   "version": "1.0",
-  "description": "Analyze selected text using Google's Gemini AI",
+  "description": "Analyze selected text using configured AI providers",
   "permissions": [
     "storage",
     "activeTab",
     "contextMenus",
     "scripting",
-    "offscreen" 
+    "offscreen"
   ],
   "icons": {
     "16": "images/icon16.png",
@@ -16,22 +16,22 @@
     "128": "images/icon128.png"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background.js"
   },
- "host_permissions": [
-   "https://api.murf.ai/*",
-   "https://api.openai.com/*",
-   "https://translate.google.com/*",
-   "http://localhost:11434/*"
- ],
+  "host_permissions": [
+    "https://api.murf.ai/*",
+    "https://api.openai.com/*",
+    "https://translate.google.com/*",
+    "http://localhost:11434/*"
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["config.js", "prompts.js", "content-state.js", "content-context.js", "content-quick-prompts.js", "content-youtube.js", "content-ui.js", "localLLM.js", "geminiLLM.js", "openaiLLM.js", "content-app.js", "content.js", "offscreen.js"],
+      "js": ["dist/content.js"],
       "all_frames": true
     }
   ],
- "content_security_policy": {
-  "extension_pages": "script-src 'self'; object-src 'self'; media-src 'self' *.oaiusercontent.com blob: https://cdn.openai.com https://persistent.oaistatic.com https://murf.ai https://translate.google.com;"
-}
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; media-src 'self' *.oaiusercontent.com blob: https://cdn.openai.com https://persistent.oaistatic.com https://murf.ai https://translate.google.com;"
+  }
 }

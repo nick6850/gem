@@ -4,12 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:update-snapshots": "playwright test --update-snapshots"
+    "build": "tsx scripts/build.ts",
+    "build:watch": "tsx scripts/build.ts --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && playwright test",
+    "test:headed": "npm run build && playwright test --headed",
+    "test:update-snapshots": "npm run build && playwright test --update-snapshots"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.0",
-    "http-server": "^14.1.1"
+    "@types/chrome": "^0.1.43",
+    "@types/node": "^25.9.3",
+    "esbuild": "^0.28.1",
+    "http-server": "^14.1.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
   }
 }

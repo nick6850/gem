@@ -9,7 +9,7 @@ test.describe("context extraction", () => {
   test("extracts selected text with sentence context", async ({ page }) => {
     await selectText(page, "#sample", "nailed");
 
-    const context = await page.evaluate(() => getContextAroundSelection());
+    const context = await page.evaluate(() => window.getContextAroundSelection());
 
     expect(context.selectedText).toBe("nailed");
     expect(context.contextBefore).toBe("");
@@ -20,7 +20,7 @@ test.describe("context extraction", () => {
   test("extends short sentence context to previous sentence", async ({ page }) => {
     await selectText(page, "#short-context", "crashed");
 
-    const context = await page.evaluate(() => getContextAroundSelection());
+    const context = await page.evaluate(() => window.getContextAroundSelection());
 
     expect(context.selectedText).toBe("crashed");
     expect(context.fullContext).toBe("The server  crashed  .");
@@ -28,7 +28,7 @@ test.describe("context extraction", () => {
 
   test("does not leave marker nodes in the page after extraction", async ({ page }) => {
     await selectText(page, "#sample", "presentation");
-    await page.evaluate(() => getContextAroundSelection());
+    await page.evaluate(() => window.getContextAroundSelection());
 
     const markerCount = await page.evaluate(() => document.body.textContent.match(/<<<SELECTED>>>|<<<\/SELECTED>>>/g)?.length || 0);
     expect(markerCount).toBe(0);

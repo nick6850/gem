@@ -1,8 +1,10 @@
-const QUICK_PROMPTS = [
+import type { QuickPrompt } from "../shared/types";
+
+export const QUICK_PROMPTS: readonly QuickPrompt[] = [
   {
     label: "RU",
     userMessage: "Translate to Russian",
-    aiPrompt: `Translate "\${selectedText}" into good everyday natural Russian. Just the russian translation, no extra comments.`,
+    aiPrompt: 'Translate "${selectedText}" into good everyday natural Russian. Just the russian translation, no extra comments.',
     errorContext: "Russian translation",
   },
   {
@@ -20,13 +22,15 @@ const QUICK_PROMPTS = [
   {
     label: "Sentence",
     userMessage: "Use it in a sentence",
-    aiPrompt: "I am an English learner. Create a sentence using the selected word to demonstrate it once more (like they do in dictionaries). Return just that sentence",
+    aiPrompt:
+      "I am an English learner. Create a sentence using the selected word to demonstrate it once more (like they do in dictionaries). Return just that sentence",
     errorContext: "Use it in another sentence.",
   },
   {
     label: "Culture",
     userMessage: "Explain cultural background",
-    aiPrompt: "Give short cultural and/or historical overview that would be interesting for me as an American. Use 1 sentence.",
+    aiPrompt:
+      "Give short cultural and/or historical overview that would be interesting for me as an American. Use 1 sentence.",
     errorContext: "Cultural background",
   },
   {

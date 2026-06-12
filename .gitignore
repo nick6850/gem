@@ -1,5 +1,7 @@
 config.js
 .env
+.env.local
+dist/
 node_modules/
 test-results/
 playwright-report/

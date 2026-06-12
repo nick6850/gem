@@ -9,7 +9,11 @@ test.describe("visual snapshots", () => {
     await selectText(page, "#sample", "nailed");
     await triggerAnalyzeShortcut(page);
     await expect.poll(async () => page.evaluate(() => {
-      const root = document.querySelector("#my-ai-helper-host").shadowRoot;
+      const root = document.querySelector("#my-ai-helper-host")?.shadowRoot;
+      if (!root) {
+        throw new Error("Extension shadow root not found");
+      }
+
       return [...root.querySelectorAll(".message")].map((node) => node.textContent.trim());
     })).toEqual(["nailed", "Performed perfectly."]);
 

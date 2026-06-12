@@ -29,12 +29,17 @@ test.describe("popup UI regression", () => {
     ]);
 
     const state = await getExtensionState(page);
+    const viewport = page.viewportSize();
+    if (!viewport) {
+      throw new Error("Viewport not available");
+    }
+
     expect(state.popup.display).toBe("block");
     expect(state.overlayDisplay).toBe("block");
-    expect(state.popup.width).toBeLessThanOrEqual(Math.min(332, page.viewportSize().width - 40) + 40);
+    expect(state.popup.width).toBeLessThanOrEqual(Math.min(332, viewport.width - 40) + 40);
     expect(state.popup.scrollWidth).toBeLessThanOrEqual(state.popup.clientWidth + 1);
-    expect(state.messages[0].width).toBeGreaterThan(40);
-    expect(state.messages[1].height).toBeGreaterThan(20);
+    expect(state.messages[0]?.width).toBeGreaterThan(40);
+    expect(state.messages[1]?.height).toBeGreaterThan(20);
   });
 
   test("keeps keyboard shortcut notifications stable", async ({ page }) => {
