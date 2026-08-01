@@ -119,6 +119,38 @@ test.describe("YouTube subtitle integration", () => {
     });
   });
 
+  test("lets the browser handle right-clicks on subtitles instead of the YouTube player", async ({ page }) => {
+    await loadYouTubeFixture(page);
+
+    const result = await page.evaluate(() => {
+      const player = document.querySelector(".html5-video-player");
+      const captionText = document.querySelector(".ytp-caption-text");
+      if (!(player instanceof HTMLElement) || !(captionText instanceof HTMLElement)) {
+        throw new Error("Caption fixture is incomplete");
+      }
+
+      let youtubeMenuOpened = false;
+      player.addEventListener("contextmenu", (event) => {
+        youtubeMenuOpened = true;
+        event.preventDefault();
+      });
+
+      const contextMenuEvent = new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        button: 2,
+      });
+      const nativeMenuAllowed = captionText.dispatchEvent(contextMenuEvent);
+
+      return { nativeMenuAllowed, youtubeMenuOpened };
+    });
+
+    expect(result).toEqual({
+      nativeMenuAllowed: true,
+      youtubeMenuOpened: false,
+    });
+  });
+
   test("logs the TypeScript build only from the top frame", async ({ page }) => {
     const messages: string[] = [];
     page.on("console", (message) => {

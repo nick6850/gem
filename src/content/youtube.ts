@@ -15,6 +15,12 @@ function preventDrag(event: MouseEvent | DragEvent | Event): false | void {
   event.stopPropagation();
 }
 
+function allowNativeContextMenu(event: Event): void {
+  // Keep YouTube's delegated player handler from replacing the browser menu.
+  // Deliberately do not call preventDefault(): the native menu should still open.
+  event.stopPropagation();
+}
+
 function setupSubtitleEventHandlers(): void {
   const subtitleContainers = document.querySelectorAll(
     ".ytp-caption-window-container, .ytp-caption-segment, .caption-visual-line"
@@ -25,6 +31,7 @@ function setupSubtitleEventHandlers(): void {
     container.addEventListener("mousemove", preventDrag, true);
     container.addEventListener("dragstart", preventDrag, true);
     container.addEventListener("selectstart", (event) => event.stopPropagation(), true);
+    container.addEventListener("contextmenu", allowNativeContextMenu, true);
   });
 }
 
@@ -45,6 +52,7 @@ function makeNewSubtitleNodeSelectable(element: Element): void {
   element.addEventListener("mousedown", preventDrag, true);
   element.addEventListener("mousemove", preventDrag, true);
   element.addEventListener("dragstart", preventDrag, true);
+  element.addEventListener("contextmenu", allowNativeContextMenu, true);
 }
 
 export function initYouTubeSubtitleSelectionFixes(): void {
