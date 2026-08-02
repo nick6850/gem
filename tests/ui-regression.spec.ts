@@ -53,4 +53,85 @@ test.describe("popup UI regression", () => {
     expect(state.notification.display).toBe("block");
     expect(state.notification.text).toBe("🎬 Movie Mode ON");
   });
+
+  test("records, removes, and persists analyze shortcuts", async ({ page }) => {
+    await selectText(page, "#sample", "nailed");
+    await triggerAnalyzeShortcut(page);
+    await expect(page.locator(".popup-action-button[aria-label='Open settings']")).toBeVisible();
+
+    await page.locator(".popup-action-button[aria-label='Open settings']").click();
+    await expect(page.locator(".settings-view")).toBeVisible();
+    await expect(page.locator(".popup-main-view")).toBeHidden();
+    await expect(page.locator(".shortcut-record-button")).toHaveText(["⌘Z"]);
+    const sharedStyles = await page.evaluate(() => {
+      const root = document.querySelector("#my-ai-helper-host")?.shadowRoot;
+      const style = (selector: string) => {
+        const element = root?.querySelector(selector);
+        if (!element) throw new Error(`Missing ${selector}`);
+        return getComputedStyle(element);
+      };
+      return {
+        headerBackground: style(".settings-header").backgroundColor,
+        userBackground: style(".message.user").backgroundColor,
+        cardBackground: style(".settings-card").backgroundColor,
+        aiBackground: style(".message.ai").backgroundColor,
+        cardBorder: style(".settings-card").borderColor,
+        inputBorder: style(".followup-input").borderColor,
+        cardRadius: style(".settings-card").borderRadius,
+        messageRadius: style(".message").borderRadius,
+        keycapRadius: style(".shortcut-keycap").borderRadius,
+        inputRadius: style(".followup-input").borderRadius,
+      };
+    });
+    expect(sharedStyles).toMatchObject({
+      headerBackground: sharedStyles.userBackground,
+      cardBackground: sharedStyles.aiBackground,
+      cardBorder: sharedStyles.inputBorder,
+      cardRadius: sharedStyles.messageRadius,
+      keycapRadius: sharedStyles.inputRadius,
+    });
+
+    await page.locator(".shortcut-add-button").click();
+    await page.evaluate(() => {
+      const recorder = document
+        .querySelector("#my-ai-helper-host")
+        ?.shadowRoot?.querySelector(".shortcut-record-button.is-recording");
+      recorder?.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "b",
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      }));
+    });
+    await expect(page.locator(".shortcut-record-button")).toHaveText(["⌘Z", "⌘B"]);
+
+    await page.locator(".shortcut-delete-button").first().click();
+    await expect(page.locator(".shortcut-record-button")).toHaveText(["⌘B"]);
+    await expect(page.locator(".shortcut-keycap:first-child")).toHaveCSS("font-size", "10px");
+    await expect(page.locator(".settings-save-button")).toHaveCSS("background-color", "rgb(80, 129, 240)");
+    const storedBeforeSave = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("__mockChromeStorage") || "{}").analyzeShortcuts
+    );
+    expect(storedBeforeSave).toMatchObject([{ key: "z", metaKey: true }]);
+
+    await page.locator(".settings-save-button").click();
+    await expect(page.locator(".settings-save-button")).toHaveText("Saved");
+
+    await page.reload();
+    await expect(page.locator("#my-ai-helper-host")).toHaveCount(1);
+    await selectText(page, "#sample", "nailed");
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "b",
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      }));
+    });
+    await expect.poll(async () => (await getExtensionState(page)).messages.map((message) => message.text)).toEqual([
+      "nailed",
+      "Performed perfectly.",
+    ]);
+  });
 });

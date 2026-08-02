@@ -59,6 +59,19 @@ export async function loadExtensionPage(
           globalThis.__offscreenDocument = args;
         },
       },
+      storage: {
+        local: {
+          get(key: string, callback: (result: Record<string, unknown>) => void) {
+            const data = JSON.parse(localStorage.getItem("__mockChromeStorage") || "{}");
+            callback({ [key]: data[key] });
+          },
+          set(items: Record<string, unknown>, callback?: () => void) {
+            const data = JSON.parse(localStorage.getItem("__mockChromeStorage") || "{}");
+            localStorage.setItem("__mockChromeStorage", JSON.stringify({ ...data, ...items }));
+            callback?.();
+          },
+        },
+      },
     };
   }, responses);
 
@@ -155,7 +168,7 @@ export async function getExtensionState(page: Page): Promise<{
       throw new Error("Extension UI is incomplete");
     }
 
-    const buttons = [...root.querySelectorAll("button")];
+    const buttons = [...root.querySelectorAll(".quick-prompt-button")];
 
     const rect = popup.getBoundingClientRect();
     const popupStyle = getComputedStyle(popup);
@@ -205,8 +218,8 @@ export async function getExtensionState(page: Page): Promise<{
 export async function triggerAnalyzeShortcut(page: Page): Promise<void> {
   await page.evaluate(() => {
     document.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "b",
-      ctrlKey: true,
+      key: "z",
+      metaKey: true,
       bubbles: true,
       cancelable: true,
     }));

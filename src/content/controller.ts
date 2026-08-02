@@ -3,6 +3,13 @@ import { createContextExtractor } from "./contextExtractor";
 import { ConversationStore } from "./conversationStore";
 import { LLMService, extractOpenAIText } from "./llmService";
 import { QUICK_PROMPTS } from "./quickPrompts";
+import {
+  DEFAULT_ANALYZE_SHORTCUTS,
+  loadAnalyzeShortcuts,
+  saveAnalyzeShortcuts,
+  shortcutMatchesEvent,
+  type ShortcutBinding,
+} from "./shortcutSettings";
 import { createExtensionUI, type ExtensionUI } from "./ui";
 
 const POPUP_VIEWPORT_MARGIN = 20;
@@ -42,6 +49,7 @@ export function initContentController(): boolean {
   let lastContextText = "";
   let originalText = "";
   let isLeftMouseDown = false;
+  let analyzeShortcuts: ShortcutBinding[] = DEFAULT_ANALYZE_SHORTCUTS.map((shortcut) => ({ ...shortcut }));
 
   const maybeUI = createExtensionUI({
     quickPrompts: QUICK_PROMPTS,
@@ -50,6 +58,11 @@ export function initContentController(): boolean {
         .snapshot()
         .map((message) => `${message.role}: ${message.content}`)
         .join("\n\n"),
+    initialAnalyzeShortcuts: analyzeShortcuts,
+    onAnalyzeShortcutsChange: (shortcuts) => {
+      analyzeShortcuts = shortcuts.map((shortcut) => ({ ...shortcut }));
+      void saveAnalyzeShortcuts(analyzeShortcuts);
+    },
     onClose: () => {
       conversationStore.reset();
     },
@@ -62,6 +75,11 @@ export function initContentController(): boolean {
     return false;
   }
   const ui: ExtensionUI = maybeUI;
+
+  void loadAnalyzeShortcuts().then((shortcuts) => {
+    analyzeShortcuts = shortcuts;
+    ui.setAnalyzeShortcuts(shortcuts);
+  });
 
   function getCenteredPopupPosition(): { left: number; top: number } {
     const popupRect = ui.popup.getBoundingClientRect();
@@ -381,7 +399,7 @@ export function initContentController(): boolean {
 
   document.addEventListener("keydown", (event) => {
     void (async () => {
-      if ((event.ctrlKey && event.key === "z") || (hasCommandModifier(event) && event.key === "b")) {
+      if (!event.repeat && analyzeShortcuts.some((shortcut) => shortcutMatchesEvent(shortcut, event))) {
         await handleAnalyzeShortcut(event);
         return;
       }
