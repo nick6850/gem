@@ -42,6 +42,20 @@ test.describe("popup UI regression", () => {
     expect(state.messages[1]?.height).toBeGreaterThan(20);
   });
 
+  test("captures the analyze shortcut before the page stops the keyboard event", async ({ page }) => {
+    await selectText(page, "#sample", "nailed");
+    await page.evaluate(() => {
+      document.body.addEventListener("keydown", (event) => event.stopPropagation(), { once: true });
+    });
+
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+Z" : "Control+Z");
+
+    await expect.poll(async () => (await getExtensionState(page)).messages.map((message) => message.text)).toEqual([
+      "nailed",
+      "Performed perfectly.",
+    ]);
+  });
+
   test("keeps keyboard shortcut notifications stable", async ({ page }) => {
     await page.keyboard.press(process.platform === "darwin" ? "Meta+1" : "Control+1");
     let state = await getExtensionState(page);

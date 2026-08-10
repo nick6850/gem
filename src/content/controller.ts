@@ -397,7 +397,11 @@ export function initContentController(): boolean {
     }
   });
 
-  document.addEventListener("keydown", (event) => {
+  window.addEventListener("keydown", (event) => {
+    if (event.composedPath().includes(ui.shadowRoot)) {
+      return;
+    }
+
     void (async () => {
       if (!event.repeat && analyzeShortcuts.some((shortcut) => shortcutMatchesEvent(shortcut, event))) {
         await handleAnalyzeShortcut(event);
@@ -417,7 +421,7 @@ export function initContentController(): boolean {
         toggleMovieMode();
       }
     })();
-  });
+  }, { capture: true });
 
   ui.floatingButton.addEventListener("click", (event) => {
     void (async () => {
