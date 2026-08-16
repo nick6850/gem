@@ -20,7 +20,7 @@ interface ResolvedLocalLLMConfig {
 const FALLBACK_CONFIG: RuntimeConfig = {
   defaultProvider: "openai",
   openai: {
-    model: "gpt-5.4-mini",
+    model: "gpt-5.6-luna",
     reasoningEffort: "low",
   },
   gemini: {
@@ -92,7 +92,7 @@ export function requireOpenAIConfig(): ResolvedOpenAIConfig {
 
   return {
     apiKey: config.apiKey,
-    model: config.model ?? "gpt-5.4-mini",
+    model: config.model ?? "gpt-5.6-luna",
     reasoningEffort: config.reasoningEffort ?? "low",
   };
 }

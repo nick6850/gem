@@ -46,7 +46,7 @@ const buildConfig: RuntimeConfig = {
   defaultProvider: provider(env.GEM_DEFAULT_PROVIDER),
   openai: {
     apiKey: optionalString(env.OPENAI_API_KEY),
-    model: optionalString(env.OPENAI_MODEL) ?? "gpt-5.4-mini",
+    model: optionalString(env.OPENAI_MODEL) ?? "gpt-5.6-luna",
     reasoningEffort: optionalString(env.OPENAI_REASONING_EFFORT) ?? "low",
   },
   gemini: {
