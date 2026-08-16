@@ -1,6 +1,7 @@
 import { shortcutMatchesEvent, type ShortcutBinding } from "./shortcutSettings";
 
 const DEBUG_COMMAND_CODE = "Digit6";
+const RECORDING_SESSION_KEY = "gem.shortcutDiagnostics.recording";
 const STATUS_ELEMENT_ID = "gem-shortcut-diagnostics-status";
 const MAX_TIMELINE_ENTRIES = 160;
 const MAX_TEXT_LENGTH = 300;
@@ -143,6 +144,23 @@ async function copyText(text: string): Promise<void> {
   }
 }
 
+function recordingWasEnabled(): boolean {
+  try {
+    return sessionStorage.getItem(RECORDING_SESSION_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function persistRecordingState(enabled: boolean): void {
+  try {
+    if (enabled) sessionStorage.setItem(RECORDING_SESSION_KEY, "true");
+    else sessionStorage.removeItem(RECORDING_SESSION_KEY);
+  } catch {
+    // Diagnostics still work for the current page when session storage is unavailable.
+  }
+}
+
 class ShortcutDiagnosticRecorder {
   private readonly timeline: DiagnosticEntry[] = [];
   private readonly mutationStats: CaptionMutationStats = {
@@ -151,11 +169,34 @@ class ShortcutDiagnosticRecorder {
     selectionNodeRemoved: 0,
     lastMutationAt: null,
   };
+  private recording = false;
+  private mutationObserver: MutationObserver | null = null;
   private lastSelectionNode: Node | null = null;
   private statusTimer: number | null = null;
 
   constructor(private readonly getActiveShortcuts: () => readonly ShortcutBinding[]) {
     window.addEventListener("keydown", this.handleWindowKeydown, true);
+    if (recordingWasEnabled()) this.startRecording(true);
+  }
+
+  private readonly record = (type: string, details: unknown): void => {
+    if (!this.recording) return;
+    this.timeline.push({ at: timestamp(), type, details });
+    if (this.timeline.length > MAX_TIMELINE_ENTRIES) this.timeline.shift();
+  };
+
+  private readonly startRecording = (resumed = false): void => {
+    if (this.recording) return;
+
+    this.timeline.length = 0;
+    this.mutationStats.added = 0;
+    this.mutationStats.removed = 0;
+    this.mutationStats.selectionNodeRemoved = 0;
+    this.mutationStats.lastMutationAt = null;
+    this.lastSelectionNode = null;
+    this.recording = true;
+    persistRecordingState(true);
+
     document.addEventListener("keydown", this.handleDocumentKeydown, true);
     window.addEventListener("keyup", this.handleKeyup, true);
     document.addEventListener("selectionchange", this.handleSelectionChange, true);
@@ -164,18 +205,28 @@ class ShortcutDiagnosticRecorder {
     window.addEventListener("selectstart", this.handlePointerEvent, true);
 
     if (document.body) {
-      new MutationObserver(this.handleMutations).observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
+      this.mutationObserver = new MutationObserver(this.handleMutations);
+      this.mutationObserver.observe(document.body, { childList: true, subtree: true });
     }
 
-    this.record("diagnostics-installed", this.snapshot());
-  }
+    this.record(resumed ? "diagnostics-resumed" : "diagnostics-started", this.snapshot());
+    this.showStatus(resumed ? "Diagnostics recording resumed" : "Diagnostics recording ON");
+  };
 
-  private readonly record = (type: string, details: unknown): void => {
-    this.timeline.push({ at: timestamp(), type, details });
-    if (this.timeline.length > MAX_TIMELINE_ENTRIES) this.timeline.shift();
+  private readonly stopRecording = (): void => {
+    this.record("diagnostics-stopped", this.snapshot());
+    this.recording = false;
+    persistRecordingState(false);
+
+    document.removeEventListener("keydown", this.handleDocumentKeydown, true);
+    window.removeEventListener("keyup", this.handleKeyup, true);
+    document.removeEventListener("selectionchange", this.handleSelectionChange, true);
+    window.removeEventListener("mousedown", this.handlePointerEvent, true);
+    window.removeEventListener("mouseup", this.handlePointerEvent, true);
+    window.removeEventListener("selectstart", this.handlePointerEvent, true);
+    this.mutationObserver?.disconnect();
+    this.mutationObserver = null;
+    this.lastSelectionNode = null;
   };
 
   private readonly snapshot = (): Record<string, unknown> => ({
@@ -188,6 +239,27 @@ class ShortcutDiagnosticRecorder {
   });
 
   private readonly handleWindowKeydown = (event: KeyboardEvent): void => {
+    if (isDebugCommand(event)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (!this.recording) {
+        this.startRecording();
+        return;
+      }
+
+      this.record("diagnostics-stop-command", {
+        event: getKeyboardSnapshot(event),
+        state: this.snapshot(),
+      });
+      this.stopRecording();
+      this.showStatus("Copying diagnostics…");
+      void this.copyReport();
+      return;
+    }
+
+    if (!this.recording) return;
+
     const shortcuts = [...this.getActiveShortcuts()];
     const matches = shortcuts.map((shortcut, index) =>
       shortcutMatchesEvent(shortcut, event) ? index : -1
@@ -199,14 +271,6 @@ class ShortcutDiagnosticRecorder {
       matchingShortcutIndexes: matches,
       state: this.snapshot(),
     });
-
-    if (isDebugCommand(event)) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      this.showStatus("Copying diagnostics…");
-      void this.copyReport();
-      return;
-    }
 
     if (matches.length > 0) {
       queueMicrotask(() => this.record("shortcut-after-microtask", this.snapshot()));
@@ -262,25 +326,32 @@ class ShortcutDiagnosticRecorder {
   };
 
   private readonly copyReport = async (): Promise<void> => {
+    const environment = {
+      url: window.location.href,
+      topFrame: window.top === window.self,
+      readyState: document.readyState,
+      visibilityState: document.visibilityState,
+      documentHasFocus: document.hasFocus(),
+      platform: navigator.platform,
+      language: navigator.language,
+    };
+    const activeShortcuts = [...this.getActiveShortcuts()];
+    const currentState = this.snapshot();
+    const captionMutations = { ...this.mutationStats };
+    const timeline = this.timeline.slice();
+    const persistedShortcuts = await readPersistedShortcuts();
+
     const report = {
       version: 1,
       generatedAt: timestamp(),
-      environment: {
-        url: window.location.href,
-        topFrame: window.top === window.self,
-        readyState: document.readyState,
-        visibilityState: document.visibilityState,
-        documentHasFocus: document.hasFocus(),
-        platform: navigator.platform,
-        language: navigator.language,
-      },
+      environment,
       shortcuts: {
-        active: [...this.getActiveShortcuts()],
-        persisted: await readPersistedShortcuts(),
+        active: activeShortcuts,
+        persisted: persistedShortcuts,
       },
-      currentState: this.snapshot(),
-      captionMutations: this.mutationStats,
-      timeline: this.timeline,
+      currentState,
+      captionMutations,
+      timeline,
     };
 
     const text = JSON.stringify(report, null, 2);

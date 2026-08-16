@@ -101,12 +101,20 @@ test.describe("popup UI regression", () => {
     expect(state.notification.text).toBe("🎬 Movie Mode ON");
   });
 
-  test("copies a redacted shortcut diagnostic report with Command-Shift-6", async ({ page }) => {
+  test("toggles session-persistent diagnostics and copies a redacted report", async ({ page }) => {
+    await page.keyboard.press("Meta+Shift+Digit6");
+    await expect(page.locator("#gem-shortcut-diagnostics-status")).toHaveText("Diagnostics recording ON");
+    expect(await page.evaluate(() => sessionStorage.getItem("gem.shortcutDiagnostics.recording"))).toBe("true");
+    expect(await page.evaluate(() => globalThis.__copiedDiagnostics ?? "")).toBe("");
+
+    await page.reload();
+    await expect(page.locator("#gem-shortcut-diagnostics-status")).toHaveText("Diagnostics recording resumed");
     await selectText(page, "#sample", "nailed");
     await page.keyboard.press("Meta+Shift+Digit6");
 
     await expect.poll(() => page.evaluate(() => globalThis.__copiedDiagnostics ?? "")).not.toBe("");
     await expect(page.locator("#gem-shortcut-diagnostics-status")).toHaveText("Diagnostics copied to clipboard");
+    expect(await page.evaluate(() => sessionStorage.getItem("gem.shortcutDiagnostics.recording"))).toBeNull();
     const reportText = await page.evaluate(() => globalThis.__copiedDiagnostics ?? "");
     const report = JSON.parse(reportText) as {
       version: number;
@@ -121,6 +129,31 @@ test.describe("popup UI regression", () => {
     expect(report.timeline.some((entry) => entry.type === "selectionchange")).toBe(true);
     expect(report.timeline.some((entry) => entry.type === "keydown-window-capture")).toBe(true);
     expect(reportText).not.toContain("test-openai-key");
+  });
+
+  test("persists the Light context setting", async ({ page }) => {
+    await selectText(page, "#sample", "nailed");
+    await triggerAnalyzeShortcut(page);
+    await page.locator(".popup-action-button[aria-label='Open settings']").click();
+
+    const toggle = page.locator(".context-toggle");
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator(".context-settings-card")).toContainText(
+      "Fewer tokens, but less surrounding context."
+    );
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await page.locator(".settings-save-button").click();
+
+    await expect.poll(() => page.evaluate(() =>
+      JSON.parse(localStorage.getItem("__mockChromeStorage") || "{}").lightContextEnabled
+    )).toBe(false);
+
+    await page.reload();
+    await expect.poll(() => page.evaluate(() =>
+      document.querySelector("#my-ai-helper-host")?.shadowRoot
+        ?.querySelector(".context-toggle")?.getAttribute("aria-checked")
+    )).toBe("false");
   });
 
   test("records, removes, and persists analyze shortcuts", async ({ page }) => {
