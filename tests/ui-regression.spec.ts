@@ -56,6 +56,39 @@ test.describe("popup UI regression", () => {
     ]);
   });
 
+  test("matches a legacy saved shortcut when macOS changes event.key", async ({ page }) => {
+    await page.evaluate(() => {
+      const storage = JSON.parse(localStorage.getItem("__mockChromeStorage") || "{}");
+      storage.analyzeShortcuts = [{
+        key: "b",
+        metaKey: true,
+        ctrlKey: false,
+        altKey: true,
+        shiftKey: true,
+      }];
+      localStorage.setItem("__mockChromeStorage", JSON.stringify(storage));
+    });
+    await page.reload();
+    await selectText(page, "#sample", "nailed");
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "ı",
+        code: "KeyB",
+        metaKey: true,
+        altKey: true,
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }));
+    });
+
+    await expect.poll(async () => (await getExtensionState(page)).messages.map((message) => message.text)).toEqual([
+      "nailed",
+      "Performed perfectly.",
+    ]);
+  });
+
   test("keeps keyboard shortcut notifications stable", async ({ page }) => {
     await page.keyboard.press(process.platform === "darwin" ? "Meta+1" : "Control+1");
     let state = await getExtensionState(page);
@@ -66,6 +99,28 @@ test.describe("popup UI regression", () => {
     state = await getExtensionState(page);
     expect(state.notification.display).toBe("block");
     expect(state.notification.text).toBe("🎬 Movie Mode ON");
+  });
+
+  test("copies a redacted shortcut diagnostic report with Command-Shift-6", async ({ page }) => {
+    await selectText(page, "#sample", "nailed");
+    await page.keyboard.press("Meta+Shift+Digit6");
+
+    await expect.poll(() => page.evaluate(() => globalThis.__copiedDiagnostics ?? "")).not.toBe("");
+    await expect(page.locator("#gem-shortcut-diagnostics-status")).toHaveText("Diagnostics copied to clipboard");
+    const reportText = await page.evaluate(() => globalThis.__copiedDiagnostics ?? "");
+    const report = JSON.parse(reportText) as {
+      version: number;
+      environment: { url: string };
+      shortcuts: { active: Array<{ key: string }> };
+      timeline: Array<{ type: string }>;
+    };
+
+    expect(report.version).toBe(1);
+    expect(report.environment.url).toContain("/tests/fixtures/page.html");
+    expect(report.shortcuts.active).toMatchObject([{ key: "z" }]);
+    expect(report.timeline.some((entry) => entry.type === "selectionchange")).toBe(true);
+    expect(report.timeline.some((entry) => entry.type === "keydown-window-capture")).toBe(true);
+    expect(reportText).not.toContain("test-openai-key");
   });
 
   test("records, removes, and persists analyze shortcuts", async ({ page }) => {
@@ -112,6 +167,7 @@ test.describe("popup UI regression", () => {
         ?.shadowRoot?.querySelector(".shortcut-record-button.is-recording");
       recorder?.dispatchEvent(new KeyboardEvent("keydown", {
         key: "b",
+        code: "KeyB",
         metaKey: true,
         bubbles: true,
         cancelable: true,
@@ -127,7 +183,7 @@ test.describe("popup UI regression", () => {
     const storedBeforeSave = await page.evaluate(() =>
       JSON.parse(localStorage.getItem("__mockChromeStorage") || "{}").analyzeShortcuts
     );
-    expect(storedBeforeSave).toMatchObject([{ key: "z", metaKey: true }]);
+    expect(storedBeforeSave).toMatchObject([{ key: "z", code: "KeyZ", metaKey: true }]);
 
     await page.locator(".settings-save-button").click();
     await expect(page.locator(".settings-save-button")).toHaveText("Saved");
@@ -137,7 +193,8 @@ test.describe("popup UI regression", () => {
     await selectText(page, "#sample", "nailed");
     await page.evaluate(() => {
       document.dispatchEvent(new KeyboardEvent("keydown", {
-        key: "b",
+        key: "ı",
+        code: "KeyB",
         metaKey: true,
         bubbles: true,
         cancelable: true,

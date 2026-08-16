@@ -1,5 +1,6 @@
 export interface ShortcutBinding {
   key: string;
+  code?: string;
   metaKey: boolean;
   ctrlKey: boolean;
   altKey: boolean;
@@ -11,6 +12,7 @@ const STORAGE_KEY = "analyzeShortcuts";
 export const DEFAULT_ANALYZE_SHORTCUTS: readonly ShortcutBinding[] = [
   {
     key: "z",
+    code: "KeyZ",
     metaKey: true,
     ctrlKey: false,
     altKey: false,
@@ -31,6 +33,7 @@ function isShortcutBinding(value: unknown): value is ShortcutBinding {
   return (
     typeof candidate.key === "string" &&
     candidate.key.length > 0 &&
+    (candidate.code === undefined || (typeof candidate.code === "string" && candidate.code.length > 0)) &&
     typeof candidate.metaKey === "boolean" &&
     typeof candidate.ctrlKey === "boolean" &&
     typeof candidate.altKey === "boolean" &&
@@ -78,6 +81,24 @@ function normalizedKey(key: string): string {
   return key.length === 1 ? key.toLocaleLowerCase() : key;
 }
 
+function keyFromCode(code: string): string | null {
+  const letter = /^Key([A-Z])$/.exec(code);
+  if (letter) {
+    return letter[1]?.toLocaleLowerCase() ?? null;
+  }
+
+  const digit = /^Digit([0-9])$/.exec(code);
+  return digit?.[1] ?? null;
+}
+
+function codeFromKey(key: string): string | null {
+  if (/^[a-z]$/i.test(key)) {
+    return `Key${key.toLocaleUpperCase()}`;
+  }
+
+  return /^[0-9]$/.test(key) ? `Digit${key}` : null;
+}
+
 export function shortcutFromKeyboardEvent(event: KeyboardEvent): ShortcutBinding | null {
   if (["Meta", "Control", "Alt", "Shift"].includes(event.key)) {
     return null;
@@ -88,7 +109,8 @@ export function shortcutFromKeyboardEvent(event: KeyboardEvent): ShortcutBinding
   }
 
   return {
-    key: normalizedKey(event.key),
+    key: keyFromCode(event.code) ?? normalizedKey(event.key),
+    ...(event.code ? { code: event.code } : {}),
     metaKey: event.metaKey,
     ctrlKey: event.ctrlKey,
     altKey: event.altKey,
@@ -97,8 +119,13 @@ export function shortcutFromKeyboardEvent(event: KeyboardEvent): ShortcutBinding
 }
 
 export function shortcutMatchesEvent(shortcut: ShortcutBinding, event: KeyboardEvent): boolean {
+  const expectedCode = shortcut.code ?? codeFromKey(shortcut.key);
+  const keyMatches = expectedCode
+    ? expectedCode === event.code
+    : normalizedKey(shortcut.key) === normalizedKey(event.key);
+
   return (
-    shortcut.key === normalizedKey(event.key) &&
+    keyMatches &&
     shortcut.metaKey === event.metaKey &&
     shortcut.ctrlKey === event.ctrlKey &&
     shortcut.altKey === event.altKey &&
@@ -107,8 +134,14 @@ export function shortcutMatchesEvent(shortcut: ShortcutBinding, event: KeyboardE
 }
 
 export function shortcutsEqual(left: ShortcutBinding, right: ShortcutBinding): boolean {
+  const leftCode = left.code ?? codeFromKey(left.key);
+  const rightCode = right.code ?? codeFromKey(right.key);
+  const keyMatches = leftCode && rightCode
+    ? leftCode === rightCode
+    : normalizedKey(left.key) === normalizedKey(right.key);
+
   return (
-    left.key === right.key &&
+    keyMatches &&
     left.metaKey === right.metaKey &&
     left.ctrlKey === right.ctrlKey &&
     left.altKey === right.altKey &&

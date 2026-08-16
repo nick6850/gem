@@ -20,6 +20,14 @@ export async function loadExtensionPage(
 
     globalThis.__fetchCalls = [];
     globalThis.__mockResponses = [...mockResponses];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        async writeText(text: string) {
+          globalThis.__copiedDiagnostics = text;
+        },
+      },
+    });
     globalThis.fetch = (async (url: RequestInfo | URL, options: RequestInit = {}) => {
       const body = options.body ? JSON.parse(String(options.body)) : null;
       globalThis.__fetchCalls?.push({ url: String(url), options: { ...options, body } });
@@ -219,6 +227,7 @@ export async function triggerAnalyzeShortcut(page: Page): Promise<void> {
   await page.evaluate(() => {
     document.dispatchEvent(new KeyboardEvent("keydown", {
       key: "z",
+      code: "KeyZ",
       metaKey: true,
       bubbles: true,
       cancelable: true,

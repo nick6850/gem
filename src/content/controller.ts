@@ -11,6 +11,7 @@ import {
   type ShortcutBinding,
 } from "./shortcutSettings";
 import { createExtensionUI, type ExtensionUI } from "./ui";
+import { installShortcutDiagnostics } from "./shortcutDiagnostics";
 
 const POPUP_VIEWPORT_MARGIN = 20;
 const PROVIDER_CYCLE: readonly LLMProvider[] = ["openai", "local", "gemini"];
@@ -75,6 +76,7 @@ export function initContentController(): boolean {
     return false;
   }
   const ui: ExtensionUI = maybeUI;
+  installShortcutDiagnostics(() => analyzeShortcuts);
 
   void loadAnalyzeShortcuts().then((shortcuts) => {
     analyzeShortcuts = shortcuts;

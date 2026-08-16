@@ -31,5 +31,6 @@ declare global {
   var __mockResponses: string[] | undefined;
   var __chromeMessages: unknown[] | undefined;
   var __runtimeListeners: unknown[] | undefined;
+  var __copiedDiagnostics: string | undefined;
   var __offscreenDocument: unknown;
 }
