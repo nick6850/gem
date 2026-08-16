@@ -23,8 +23,13 @@ test.describe("prompt builders", () => {
 
     expect(prompts.singleWord).toBe('Context: "She nailed the presentation." Word: "nailed"');
     expect(prompts.twoWordPhrase).toBe('Context: "Dark factories are coming." Word: "dark factories"');
-    expect(prompts.longerPhrase).toBe('Selected: "spin the wheel a little bit". Context: "A human had to spin the wheel a little bit.". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.');
-    expect(prompts.longSelection).toBe('Selected: "one two three four five six seven eight nine ten". Context: "context". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.');
+    expect(prompts.longerPhrase).toContain('Selected: "spin the wheel a little bit"');
+    expect(prompts.longerPhrase).toContain('Context: "A human had to spin the wheel a little bit."');
+    expect(prompts.longerPhrase).toContain("Paraphrase the entire selected field as one unit");
+    expect(prompts.longerPhrase).not.toContain("Define");
+    expect(prompts.longSelection).toContain('Selected: "one two three four five six seven eight nine ten"');
+    expect(prompts.longSelection).not.toContain('Context: "context"');
+    expect(prompts.longSelection).toContain("Do not omit anything");
     expect(prompts.expandedLongSelection).toContain('Context: "surrounding context"');
   });
 
@@ -37,7 +42,10 @@ test.describe("prompt builders", () => {
 
     expect(prompts.movieSingle).toBe('Context: "Line withquotes and slash" Word: "crashed"');
     expect(prompts.moviePhrase).toBe('Context: "You want to fill me in?" Word: "fill me in"');
-    expect(prompts.movieLong).toBe('I am watching a movie and that these are subtitles. Selected: "one two three four five six seven eight nine ten". Context: "context". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.');
+    expect(prompts.movieLong).toContain(
+      'I am watching a movie and these are subtitles. Selected: "one two three four five six seven eight nine ten"'
+    );
+    expect(prompts.movieLong).not.toContain('Context: "context"');
   });
 
   test("preserves conversation prompt formatting", async ({ page }) => {
@@ -81,6 +89,59 @@ test.describe("prompt builders", () => {
       selected: "charge",
       after: "a service fee.",
     });
-    expect(prompt).toContain("Define only the selected field.");
+    expect(prompt).toContain("Define the entire selected field as one term.");
+    expect(prompt).toContain("Never define only part of it.");
+  });
+
+  test("paraphrases a complete numeric offer instead of defining its number", async ({ page }) => {
+    const prompt = await page.evaluate(() => window.buildAnalysisPrompt(
+      "99 for a four-pack",
+      {
+        before: "It costs 9 bucks for one or",
+        selected: "99 for a four-pack",
+        after: ", which is the better deal.",
+      },
+      "openai",
+      false,
+      false
+    ));
+
+    const contextLine = prompt.split("\n").find((line) => line.startsWith("Selection context JSON:"));
+    expect(contextLine).toBeTruthy();
+    expect(JSON.parse((contextLine ?? "").replace("Selection context JSON: ", ""))).toEqual({
+      before: "It costs 9 bucks for one or",
+      selected: "99 for a four-pack",
+      after: ", which is the better deal.",
+    });
+    expect(prompt).toContain("Paraphrase the entire selected field as one unit");
+    expect(prompt).toContain("Preserve every number, quantity, price");
+    expect(prompt).toContain("Never define only one word from it");
+    expect(prompt).not.toContain("Define the entire selected field");
+  });
+
+  test("keeps multiword names and titles together as terms", async ({ page }) => {
+    const prompts = await page.evaluate(() => ({
+      organization: window.buildAnalysisPrompt("Bank of America", {
+        before: "She opened an account at",
+        selected: "Bank of America",
+        after: ".",
+      }),
+      title: window.buildAnalysisPrompt("The Lord of the Rings", {
+        before: "They watched",
+        selected: "The Lord of the Rings",
+        after: "last night.",
+      }),
+      idiom: window.buildAnalysisPrompt("fill me in", {
+        before: "Could you",
+        selected: "fill me in",
+        after: "on what happened?",
+      }),
+    }));
+
+    for (const prompt of Object.values(prompts)) {
+      expect(prompt).toContain("Define the entire selected field as one term");
+      expect(prompt).toContain("Never define only part of it");
+      expect(prompt).not.toContain("Paraphrase the entire selected field");
+    }
   });
 });

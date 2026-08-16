@@ -1,182 +1,49 @@
 import type { AnalysisContext, ChatMessage } from "../shared/types";
 
-export const FOLLOWUP_SYSTEM_PROMPT =
-  "You are a knowledgeable, simple dictionary. Give the definition that fits the context. One or two short sentences, starts uppercase, ends with period. Only commas allowed. Do not borrow words or concepts from the context sentence. Use normal everyday language, not formal or technical. Code context, use the programming meaning. For proper nouns and products, mention what makes them known. The user may ask follow-up questions, just answer them naturally. Never ask the user to provide a word or clarify, just do your best with what they said. Define only the exact word given, not the surrounding phrase. Give one single definition, never list alternatives or second meanings. If the word itself carries a figurative meaning in the context, use that meaning. But if the word is just part of a larger fixed expression, still define just the word on its own, not the whole expression.";
+export type AnalysisTask = "define" | "paraphrase";
 
-const UTILITY_WORDS = new Set([
+export const DEFINITION_SYSTEM_PROMPT =
+  "You are a knowledgeable, simple dictionary. Define the entire selected field as one lexical item, name, product, or term, using the surrounding context to choose the intended meaning. If the selected field contains multiple words, treat them together and never define only one part of it. Give one single definition, never list alternatives or second meanings. One or two short sentences, starts uppercase, ends with a period. Only commas and periods are allowed. Use normal everyday language, not formal or technical. Code context, use the programming meaning. For proper nouns and products, mention what makes them known. If the user asks a follow-up question, answer it naturally. Never ask the user to clarify, just do your best with the available context.";
+
+export const PARAPHRASE_SYSTEM_PROMPT =
+  "You rewrite selected text in plain everyday language. Rewrite the entire selected field as one unit, never define or explain only one word from it. Preserve every number, quantity, price, negation, comparison, and relationship. Use the surrounding context only to resolve references or meaning omitted from the selection, including an implied unit such as dollars. Do not paraphrase the surrounding context itself. Return one short complete sentence, starts uppercase, ends with a period. Only commas and periods are allowed. Do not omit anything or add unsupported facts. If the user asks a follow-up question, answer it naturally. Never ask the user to clarify, just do your best with the available context.";
+
+// Kept as the public default for compatibility with the extension's prompt helpers.
+export const FOLLOWUP_SYSTEM_PROMPT = DEFINITION_SYSTEM_PROMPT;
+
+const TERM_CONNECTORS = new Set([
   "a",
   "an",
-  "the",
-  "in",
-  "on",
-  "at",
-  "to",
-  "for",
-  "of",
-  "with",
-  "by",
-  "from",
-  "up",
-  "about",
-  "into",
-  "through",
-  "during",
-  "before",
-  "after",
-  "above",
-  "below",
-  "between",
-  "among",
-  "under",
-  "over",
-  "around",
-  "near",
-  "far",
-  "inside",
-  "outside",
-  "within",
-  "without",
-  "against",
-  "toward",
-  "towards",
-  "upon",
-  "across",
-  "behind",
-  "beyond",
-  "beside",
-  "besides",
-  "except",
-  "including",
-  "concerning",
-  "regarding",
-  "despite",
-  "throughout",
-  "amid",
-  "amidst",
-  "amongst",
-  "i",
-  "me",
-  "my",
-  "myself",
-  "we",
-  "us",
-  "our",
-  "ourselves",
-  "you",
-  "your",
-  "yourself",
-  "yourselves",
-  "he",
-  "him",
-  "his",
-  "himself",
-  "she",
-  "her",
-  "hers",
-  "herself",
-  "it",
-  "its",
-  "itself",
-  "they",
-  "them",
-  "their",
-  "theirs",
-  "themselves",
-  "this",
-  "that",
-  "these",
-  "those",
   "and",
+  "at",
+  "by",
+  "for",
+  "in",
+  "of",
+  "on",
   "or",
-  "but",
-  "so",
-  "yet",
-  "nor",
-  "because",
-  "since",
-  "although",
-  "though",
-  "if",
-  "unless",
-  "while",
-  "whereas",
-  "wherever",
-  "whenever",
-  "however",
-  "therefore",
-  "moreover",
-  "furthermore",
-  "nevertheless",
-  "nonetheless",
-  "is",
-  "are",
-  "was",
-  "were",
-  "be",
-  "been",
-  "being",
-  "have",
-  "has",
-  "had",
-  "having",
-  "do",
-  "does",
-  "did",
-  "doing",
-  "will",
-  "would",
-  "shall",
-  "should",
-  "can",
-  "could",
-  "may",
-  "might",
-  "must",
-  "ought",
-  "not",
-  "no",
-  "yes",
-  "very",
-  "quite",
-  "rather",
-  "some",
-  "any",
-  "all",
-  "both",
-  "each",
-  "every",
-  "either",
-  "neither",
-  "one",
-  "two",
-  "first",
-  "second",
-  "last",
-  "next",
-  "other",
-  "another",
-  "same",
-  "different",
-  "such",
-  "too",
-  "also",
-  "just",
-  "only",
-  "still",
-  "already",
-  "again",
-  "here",
-  "there",
-  "where",
-  "when",
-  "why",
-  "how",
-  "what",
-  "who",
-  "which",
-  "whose",
-  "whom",
+  "the",
+  "to",
+  "with",
 ]);
+
+export function getAnalysisTask(selectedText: string): AnalysisTask {
+  const tokens = selectedText.trim().split(/\s+/u).filter(Boolean);
+  if (tokens.length <= 2) return "define";
+  if (/\p{N}/u.test(selectedText) || tokens.length > 9) return "paraphrase";
+
+  const significantTokens = tokens.filter((token) => {
+    const normalized = token.toLocaleLowerCase().replaceAll(/^\P{L}+|\P{L}+$/gu, "");
+    return normalized && !TERM_CONNECTORS.has(normalized);
+  });
+  return significantTokens.length <= 2 ? "define" : "paraphrase";
+}
+
+export function getAnalysisSystemPrompt(selectedText: string): string {
+  return getAnalysisTask(selectedText) === "define"
+    ? DEFINITION_SYSTEM_PROMPT
+    : PARAPHRASE_SYSTEM_PROMPT;
+}
 
 export function buildConversationPrompt(
   conversationHistory: readonly ChatMessage[],
@@ -232,34 +99,33 @@ export function buildAnalysisPrompt(
       })}`
     : "";
 
-  const words = selectedText
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => word.length > 0 && !UTILITY_WORDS.has(word));
+  const tokenCount = selectedText.trim().split(/\s+/u).filter(Boolean).length;
 
-  if (words.length <= 2) {
+  if (getAnalysisTask(selectedText) === "define") {
     if (structuredBlock) {
-      return `${structuredBlock}\nDefine only the selected field.`;
+      return `${structuredBlock}\nDefine the entire selected field as one term. Never define only part of it.`;
     }
     return `Context: "${sanitizedContext}" Word: "${selectedText}"`;
   }
 
-  const moviePrefix = movieMode ? "I am watching a movie and that these are subtitles." : "";
+  const moviePrefix = movieMode ? "I am watching a movie and these are subtitles." : "";
+  const paraphraseInstruction =
+    "Paraphrase the entire selected field as one unit using simple everyday words. Preserve every number, quantity, price, comparison, negation, and relationship. Never define only one word from it. Use the surrounding context only to resolve implied meaning. Do not omit anything. Return one sentence. Only use periods and commas, no other punctuation or formatting.";
 
-  if (words.length > 9) {
+  if (tokenCount > 9) {
     if (!lightContextEnabled && (structuredBlock || sanitizedContext)) {
       const contextPart = structuredBlock || `Selected: "${selectedText}". Context: "${sanitizedContext}".`;
-      return `${moviePrefix}${moviePrefix ? " " : ""}${contextPart}\nParaphrase ONLY the selected field (not the surrounding context) using different simple words. Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
+      return `${moviePrefix}${moviePrefix ? " " : ""}${contextPart}\n${paraphraseInstruction}`;
     }
 
-    return `${moviePrefix}Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
+    return `${moviePrefix}${moviePrefix ? " " : ""}Selected: "${selectedText}".\n${paraphraseInstruction}`;
   }
 
   const prefix = movieMode ? `${moviePrefix} ` : "";
   if (structuredBlock) {
-    return `${prefix}${structuredBlock}\nParaphrase ONLY the selected field (not the surrounding context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
+    return `${prefix}${structuredBlock}\n${paraphraseInstruction}`;
   }
-  return `${prefix}Selected: "${selectedText}". Context: "${sanitizedContext}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
+  return `${prefix}Selected: "${selectedText}". Context: "${sanitizedContext}".\n${paraphraseInstruction}`;
 }
 
 export function buildFollowupPrompt(

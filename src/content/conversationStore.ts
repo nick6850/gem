@@ -1,6 +1,6 @@
 import { getDefaultProvider } from "../shared/config";
 import type { AnalysisContext, ChatMessage, LLMProvider } from "../shared/types";
-import { buildAnalysisPrompt, FOLLOWUP_SYSTEM_PROMPT } from "./prompts";
+import { buildAnalysisPrompt, getAnalysisSystemPrompt } from "./prompts";
 
 export interface PendingConversationTurn {
   messages: readonly ChatMessage[];
@@ -70,7 +70,7 @@ export class ConversationStore {
       : [
           {
             role: "system" as const,
-            content: FOLLOWUP_SYSTEM_PROMPT,
+            content: getAnalysisSystemPrompt(input.selectedText),
           },
           {
             role: "user" as const,

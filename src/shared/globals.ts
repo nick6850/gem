@@ -21,8 +21,12 @@ declare global {
       userQuestion?: string
     ): string;
     setLLMProvider(provider: string): void;
-    analyzeText(selectedText: string, context: string, isFollowUp?: boolean): Promise<string>;
-    analyzeWithOpenAILLM(selectedText: string, context: string, isFollowUp?: boolean): Promise<string>;
+    analyzeText(selectedText: string, context: AnalysisContext, isFollowUp?: boolean): Promise<string>;
+    analyzeWithOpenAILLM(
+      selectedText: string,
+      context: AnalysisContext,
+      isFollowUp?: boolean
+    ): Promise<string>;
     extractOpenAIText(data: unknown): string;
     getContextAroundSelection(): import("./types").SelectionContext;
   }

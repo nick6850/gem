@@ -66,7 +66,7 @@ export class GeminiClient implements AnalyzerClient {
       ],
     };
 
-    if (request.isFollowUp && systemMessage) {
+    if (systemMessage) {
       requestBody.systemInstruction = {
         parts: [{ text: systemMessage.content }],
       };
