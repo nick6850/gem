@@ -29,6 +29,12 @@
       "matches": ["<all_urls>"],
       "js": ["dist/content.js"],
       "all_frames": true
+    },
+    {
+      "matches": ["https://*.youtube.com/*"],
+      "js": ["dist/youtube-bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "content_security_policy": {

@@ -12,7 +12,17 @@ export interface SelectionContext {
   contextBefore: string;
   contextAfter: string;
   fullContext: string;
+  source?: "document" | "youtube-subtitle" | "popup";
+  selectionOccurrenceIndex?: number;
 }
+
+export interface SelectionPromptContext {
+  before: string;
+  selected: string;
+  after: string;
+}
+
+export type AnalysisContext = string | SelectionPromptContext;
 
 export interface QuickPrompt {
   label: string;
@@ -46,7 +56,7 @@ export interface RuntimeConfig {
 
 export interface AnalyzeRequest {
   selectedText: string;
-  context: string;
+  context: AnalysisContext;
   isFollowUp: boolean;
   messages: readonly ChatMessage[];
 }

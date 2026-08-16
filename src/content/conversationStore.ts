@@ -1,5 +1,5 @@
 import { getDefaultProvider } from "../shared/config";
-import type { ChatMessage, LLMProvider } from "../shared/types";
+import type { AnalysisContext, ChatMessage, LLMProvider } from "../shared/types";
 import { buildAnalysisPrompt, FOLLOWUP_SYSTEM_PROMPT } from "./prompts";
 
 export interface PendingConversationTurn {
@@ -9,7 +9,7 @@ export interface PendingConversationTurn {
 
 export interface ConversationTurnInput {
   selectedText: string;
-  context: string;
+  context: AnalysisContext;
   isFollowUp: boolean;
 }
 
@@ -17,7 +17,7 @@ export class ConversationStore {
   private history: ChatMessage[] = [];
   private provider: LLMProvider = getDefaultProvider();
   private movieMode = false;
-  private sentenceContextCount = 1;
+  private lightContextEnabled = true;
 
   get currentProvider(): LLMProvider {
     return this.provider;
@@ -28,11 +28,19 @@ export class ConversationStore {
   }
 
   get currentSentenceContextCount(): number {
-    return this.sentenceContextCount;
+    return this.lightContextEnabled ? 1 : 5;
+  }
+
+  get isLightContextEnabled(): boolean {
+    return this.lightContextEnabled;
   }
 
   setProvider(provider: LLMProvider): void {
     this.provider = provider;
+  }
+
+  setLightContextEnabled(enabled: boolean): void {
+    this.lightContextEnabled = enabled;
   }
 
   toggleMovieMode(): boolean {
@@ -70,7 +78,8 @@ export class ConversationStore {
               input.selectedText,
               input.context,
               this.provider,
-              this.movieMode
+              this.movieMode,
+              this.lightContextEnabled
             ),
           },
         ];

@@ -10,7 +10,10 @@ export interface ExtensionUIOptions {
   quickPrompts: readonly QuickPrompt[];
   getConversationDump(): string;
   initialAnalyzeShortcuts: readonly ShortcutBinding[];
+  initialLightContextEnabled: boolean;
   onAnalyzeShortcutsChange(shortcuts: readonly ShortcutBinding[]): void;
+  onLightContextChange(enabled: boolean): void;
+  onRetryYouTubeTranscript(): void;
   onClose(): void;
   onPlayTTS(text: string): void;
 }
@@ -19,6 +22,7 @@ export interface ExtensionUI {
   shadowRoot: ShadowRoot;
   floatingButton: HTMLDivElement;
   notificationDiv: HTMLDivElement;
+  youtubeTranscriptWarning: HTMLDivElement;
   popup: HTMLDivElement;
   overlay: HTMLDivElement;
   chatContainer: HTMLDivElement;
@@ -31,6 +35,9 @@ export interface ExtensionUI {
   enableClickOutsideClose(): void;
   setPopupPosition(position: { left: number; top: number }): void;
   setAnalyzeShortcuts(shortcuts: readonly ShortcutBinding[]): void;
+  setLightContextEnabled(enabled: boolean): void;
+  showYouTubeTranscriptWarning(reason: string): void;
+  clearYouTubeTranscriptWarning(): void;
   showMovieModeNotification(enabled: boolean): void;
   showProviderNotification(provider: LLMProvider): void;
 }
@@ -130,6 +137,63 @@ const STYLE_TEXT = `
       z-index: 10002;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       border: 2px solid #4285f4;
+  }
+
+  .youtube-transcript-warning {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(430px, calc(100vw - 32px));
+      padding: 18px 20px;
+      border: 2px solid #ff6b6b;
+      border-radius: 10px;
+      background: #2b1518;
+      color: #fff;
+      font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
+      text-align: left;
+      box-shadow: 0 10px 36px rgba(0, 0, 0, .5);
+      z-index: 10003;
+      pointer-events: auto;
+      box-sizing: border-box;
+      overflow-y: auto;
+  }
+
+  .youtube-transcript-warning-title {
+      margin-bottom: 8px;
+      color: #ffb3b3;
+      font-size: 17px;
+      font-weight: 700;
+  }
+
+  .youtube-transcript-warning-reason {
+      margin: 8px 0;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .08);
+      overflow-wrap: anywhere;
+  }
+
+  .youtube-transcript-warning-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: #f0cccc;
+      font-size: 12px;
+  }
+
+  .youtube-transcript-warning-retry {
+      flex: none;
+      padding: 6px 10px;
+      border: 1px solid #ff8d8d;
+      border-radius: 5px;
+      background: #ff6b6b;
+      color: #241010;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
   }
 
   .popup {
@@ -305,6 +369,60 @@ const STYLE_TEXT = `
       border: 1px solid var(--gem-border);
       border-radius: var(--gem-radius);
       background: var(--gem-surface);
+  }
+
+  .settings-card + .settings-card {
+      margin-top: 8px;
+  }
+
+  .context-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+  }
+
+  .context-setting-copy {
+      min-width: 0;
+  }
+
+  .context-toggle {
+      position: relative;
+      width: 34px;
+      height: 19px;
+      padding: 0;
+      flex: none;
+      border: 0;
+      border-radius: 10px;
+      background: #b8bcc5;
+      cursor: pointer;
+      transition: background .15s ease;
+  }
+
+  .context-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+      transition: transform .15s ease;
+  }
+
+  .context-toggle[aria-checked='true'] {
+      background: #5081F0;
+  }
+
+  .context-toggle[aria-checked='true']::after {
+      transform: translateX(15px);
+  }
+
+  .context-toggle:focus-visible {
+      outline: 2px solid rgba(80, 129, 240, .35);
+      outline-offset: 2px;
   }
 
   .settings-section-title {
@@ -687,6 +805,63 @@ export function createExtensionUI(options: ExtensionUIOptions): ExtensionUI | nu
   notificationDiv.style.display = "none";
   shadowRoot.appendChild(notificationDiv);
 
+  const youtubeTranscriptWarning = document.createElement("div");
+  youtubeTranscriptWarning.className = "youtube-transcript-warning my-ai-helper-extension";
+  youtubeTranscriptWarning.setAttribute("role", "alert");
+  youtubeTranscriptWarning.setAttribute("aria-live", "assertive");
+  youtubeTranscriptWarning.style.display = "none";
+
+  const youtubeWarningTitle = document.createElement("div");
+  youtubeWarningTitle.className = "youtube-transcript-warning-title";
+  youtubeWarningTitle.textContent = "⚠ YouTube expanded context failed";
+
+  const youtubeWarningMessage = document.createElement("div");
+  youtubeWarningMessage.textContent =
+    "The AI is using only the visible subtitle. Expanded transcript context is not working.";
+
+  const youtubeWarningReason = document.createElement("div");
+  youtubeWarningReason.className = "youtube-transcript-warning-reason";
+
+  const youtubeWarningActions = document.createElement("div");
+  youtubeWarningActions.className = "youtube-transcript-warning-actions";
+  const youtubeWarningPersistence = document.createElement("span");
+  youtubeWarningPersistence.textContent = "This stays visible until transcript parsing succeeds.";
+  const youtubeWarningRetry = document.createElement("button");
+  youtubeWarningRetry.type = "button";
+  youtubeWarningRetry.className = "youtube-transcript-warning-retry";
+  youtubeWarningRetry.textContent = "Retry";
+  youtubeWarningRetry.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    options.onRetryYouTubeTranscript();
+  });
+  youtubeWarningActions.append(youtubeWarningPersistence, youtubeWarningRetry);
+  youtubeTranscriptWarning.append(
+    youtubeWarningTitle,
+    youtubeWarningMessage,
+    youtubeWarningReason,
+    youtubeWarningActions
+  );
+  shadowRoot.appendChild(youtubeTranscriptWarning);
+
+  const positionYouTubeTranscriptWarning = (): void => {
+    const viewport = window.visualViewport;
+    const viewportWidth = viewport?.width ?? window.innerWidth;
+    const viewportHeight = viewport?.height ?? window.innerHeight;
+    const viewportLeft = viewport?.offsetLeft ?? 0;
+    const viewportTop = viewport?.offsetTop ?? 0;
+    youtubeTranscriptWarning.style.width = `${Math.min(430, Math.max(0, viewportWidth - 32))}px`;
+    youtubeTranscriptWarning.style.maxHeight = `${Math.max(0, viewportHeight - 32)}px`;
+    youtubeTranscriptWarning.style.left = `${viewportLeft + viewportWidth / 2}px`;
+    youtubeTranscriptWarning.style.top = `${viewportTop + viewportHeight / 2}px`;
+  };
+  const repositionYouTubeTranscriptWarning = (): void => {
+    if (youtubeTranscriptWarning.style.display !== "none") positionYouTubeTranscriptWarning();
+  };
+  window.visualViewport?.addEventListener("resize", repositionYouTubeTranscriptWarning);
+  window.visualViewport?.addEventListener("scroll", repositionYouTubeTranscriptWarning);
+  window.addEventListener("resize", repositionYouTubeTranscriptWarning);
+
   const popup = document.createElement("div");
   popup.className = "popup my-ai-helper-extension";
   popup.style.display = "none";
@@ -813,14 +988,36 @@ export function createExtensionUI(options: ExtensionUIOptions): ExtensionUI | nu
   backButton.appendChild(createSvgIcon(["m15 18-6-6 6-6"]));
   const settingsTitle = document.createElement("h2");
   settingsTitle.className = "settings-title";
-  settingsTitle.textContent = "Keyboard shortcuts";
+  settingsTitle.textContent = "Settings";
   const settingsSubtitle = document.createElement("p");
   settingsSubtitle.className = "settings-subtitle";
-  settingsSubtitle.textContent = "Customize how you open the analyzer";
+  settingsSubtitle.textContent = "Customize the analyzer";
   const settingsHeaderCopy = document.createElement("div");
   settingsHeaderCopy.append(settingsTitle, settingsSubtitle);
   settingsHeader.append(backButton, settingsHeaderCopy);
   settingsView.appendChild(settingsHeader);
+
+  const contextCard = document.createElement("div");
+  contextCard.className = "settings-card context-settings-card";
+  const contextRow = document.createElement("div");
+  contextRow.className = "context-setting-row";
+  const contextCopy = document.createElement("div");
+  contextCopy.className = "context-setting-copy";
+  const contextTitle = document.createElement("div");
+  contextTitle.className = "settings-section-title";
+  contextTitle.textContent = "Light context";
+  const contextDescription = document.createElement("p");
+  contextDescription.className = "settings-section-description";
+  contextDescription.textContent =
+    "Uses only the selected sentence. Fewer tokens, but less surrounding context.";
+  contextCopy.append(contextTitle, contextDescription);
+  const contextToggle = document.createElement("button");
+  contextToggle.type = "button";
+  contextToggle.className = "context-toggle";
+  contextToggle.setAttribute("role", "switch");
+  contextToggle.setAttribute("aria-label", "Light context");
+  contextRow.append(contextCopy, contextToggle);
+  contextCard.appendChild(contextRow);
 
   const settingsCard = document.createElement("div");
   settingsCard.className = "settings-card";
@@ -848,16 +1045,25 @@ export function createExtensionUI(options: ExtensionUIOptions): ExtensionUI | nu
   const settingsFooter = document.createElement("div");
   settingsFooter.className = "settings-footer";
   settingsFooter.append(shortcutHelp, saveButton);
-  settingsView.append(settingsCard, addShortcutButton, settingsFooter);
+  settingsView.append(contextCard, settingsCard, addShortcutButton, settingsFooter);
   popup.appendChild(settingsView);
 
   let persistedAnalyzeShortcuts = options.initialAnalyzeShortcuts.map((shortcut) => ({ ...shortcut }));
   let analyzeShortcuts = persistedAnalyzeShortcuts.map((shortcut) => ({ ...shortcut }));
+  let persistedLightContextEnabled = options.initialLightContextEnabled;
+  let lightContextEnabled = persistedLightContextEnabled;
   let recordingIndex: number | null = null;
+
+  function renderContextToggle(): void {
+    contextToggle.setAttribute("aria-checked", String(lightContextEnabled));
+    contextToggle.title = lightContextEnabled ? "Light context is on" : "Expanded context is on";
+  }
 
   function showMainView(): void {
     recordingIndex = null;
     analyzeShortcuts = persistedAnalyzeShortcuts.map((shortcut) => ({ ...shortcut }));
+    lightContextEnabled = persistedLightContextEnabled;
+    renderContextToggle();
     shortcutHelp?.classList.remove("error");
     if (shortcutHelp) shortcutHelp.textContent = "";
     if (mainView) mainView.style.display = "block";
@@ -959,23 +1165,32 @@ export function createExtensionUI(options: ExtensionUIOptions): ExtensionUI | nu
 
   settingsButton.addEventListener("click", () => {
     analyzeShortcuts = persistedAnalyzeShortcuts.map((shortcut) => ({ ...shortcut }));
+    lightContextEnabled = persistedLightContextEnabled;
+    renderContextToggle();
     mainView.style.display = "none";
     settingsView.style.display = "block";
     renderShortcuts();
   });
   backButton.addEventListener("click", showMainView);
+  contextToggle.addEventListener("click", () => {
+    lightContextEnabled = !lightContextEnabled;
+    renderContextToggle();
+  });
   addShortcutButton.addEventListener("click", () => {
     recordingIndex = analyzeShortcuts.length;
     renderShortcuts();
   });
   saveButton.addEventListener("click", () => {
     persistedAnalyzeShortcuts = analyzeShortcuts.map((shortcut) => ({ ...shortcut }));
+    persistedLightContextEnabled = lightContextEnabled;
     options.onAnalyzeShortcutsChange(persistedAnalyzeShortcuts);
+    options.onLightContextChange(persistedLightContextEnabled);
     saveButton.textContent = "Saved";
     window.setTimeout(() => {
       saveButton.textContent = "Save";
     }, 800);
   });
+  renderContextToggle();
   renderShortcuts();
 
   shadowRoot.appendChild(popup);
@@ -1039,6 +1254,7 @@ export function createExtensionUI(options: ExtensionUIOptions): ExtensionUI | nu
     shadowRoot,
     floatingButton,
     notificationDiv,
+    youtubeTranscriptWarning,
     popup,
     overlay,
     chatContainer,
@@ -1060,6 +1276,19 @@ export function createExtensionUI(options: ExtensionUIOptions): ExtensionUI | nu
       analyzeShortcuts = persistedAnalyzeShortcuts.map((shortcut) => ({ ...shortcut }));
       recordingIndex = null;
       renderShortcuts();
+    },
+    setLightContextEnabled(enabled) {
+      persistedLightContextEnabled = enabled;
+      lightContextEnabled = enabled;
+      renderContextToggle();
+    },
+    showYouTubeTranscriptWarning(reason) {
+      youtubeWarningReason.textContent = `Reason: ${reason}`;
+      positionYouTubeTranscriptWarning();
+      youtubeTranscriptWarning.style.display = "block";
+    },
+    clearYouTubeTranscriptWarning() {
+      youtubeTranscriptWarning.style.display = "none";
     },
     showMovieModeNotification,
     showProviderNotification,

@@ -24,12 +24,23 @@ test.describe("TypeScript migration regressions", () => {
   test("manifest loads bundled content only and keeps offscreen out of page scripts", async () => {
     const manifest = JSON.parse(await readFile("manifest.json", "utf8")) as {
       background?: { service_worker?: string };
-      content_scripts?: Array<{ js?: string[] }>;
+      content_scripts?: Array<{
+        js?: string[];
+        matches?: string[];
+        run_at?: string;
+        world?: string;
+      }>;
     };
 
     expect(manifest.background?.service_worker).toBe("dist/background.js");
     expect(manifest.content_scripts?.[0]?.js).toEqual(["dist/content.js"]);
     expect(manifest.content_scripts?.[0]?.js ?? []).not.toContain("offscreen.js");
+    expect(manifest.content_scripts?.[1]).toEqual({
+      matches: ["https://*.youtube.com/*"],
+      js: ["dist/youtube-bridge.js"],
+      run_at: "document_start",
+      world: "MAIN",
+    });
   });
 
   test("reports missing OpenAI config clearly", async ({ page }) => {

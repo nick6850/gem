@@ -1,4 +1,4 @@
-import type { ChatMessage, RuntimeConfig } from "./types";
+import type { AnalysisContext, ChatMessage, RuntimeConfig } from "./types";
 
 export {};
 
@@ -9,9 +9,10 @@ declare global {
     FOLLOWUP_SYSTEM_PROMPT: string;
     buildAnalysisPrompt(
       selectedText: string,
-      context: string,
+      context: AnalysisContext,
       provider?: string,
-      movieMode?: boolean
+      movieMode?: boolean,
+      lightContextEnabled?: boolean
     ): string;
     buildConversationPrompt(conversationHistory: readonly ChatMessage[], currentQuestion: string): string;
     buildFollowupPrompt(

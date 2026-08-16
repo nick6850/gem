@@ -1,4 +1,4 @@
-import type { AnalyzerClient, LLMProvider } from "../shared/types";
+import type { AnalysisContext, AnalyzerClient, LLMProvider } from "../shared/types";
 import { GeminiClient } from "../providers/gemini";
 import { LocalLLMClient } from "../providers/local";
 import { OpenAIClient, extractOpenAIText } from "../providers/openai";
@@ -27,7 +27,7 @@ export class LLMService {
     };
   }
 
-  async analyzeText(selectedText: string, context: string, isFollowUp = false): Promise<string> {
+  async analyzeText(selectedText: string, context: AnalysisContext, isFollowUp = false): Promise<string> {
     return this.analyzeWithFallback(
       this.conversationStore.currentProvider,
       selectedText,
@@ -39,7 +39,7 @@ export class LLMService {
   async analyzeWithProvider(
     provider: LLMProvider,
     selectedText: string,
-    context: string,
+    context: AnalysisContext,
     isFollowUp = false
   ): Promise<string> {
     const turn = this.conversationStore.startTurn({ selectedText, context, isFollowUp });
@@ -56,7 +56,7 @@ export class LLMService {
   private async analyzeWithFallback(
     primaryProvider: LLMProvider,
     selectedText: string,
-    context: string,
+    context: AnalysisContext,
     isFollowUp: boolean
   ): Promise<string> {
     const turn = this.conversationStore.startTurn({ selectedText, context, isFollowUp });

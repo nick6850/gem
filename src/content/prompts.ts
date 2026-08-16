@@ -1,4 +1,4 @@
-import type { ChatMessage } from "../shared/types";
+import type { AnalysisContext, ChatMessage } from "../shared/types";
 
 export const FOLLOWUP_SYSTEM_PROMPT =
   "You are a knowledgeable, simple dictionary. Give the definition that fits the context. One or two short sentences, starts uppercase, ends with period. Only commas allowed. Do not borrow words or concepts from the context sentence. Use normal everyday language, not formal or technical. Code context, use the programming meaning. For proper nouns and products, mention what makes them known. The user may ask follow-up questions, just answer them naturally. Never ask the user to provide a word or clarify, just do your best with what they said. Define only the exact word given, not the surrounding phrase. Give one single definition, never list alternatives or second meanings. If the word itself carries a figurative meaning in the context, use that meaning. But if the word is just part of a larger fixed expression, still define just the word on its own, not the whole expression.";
@@ -214,13 +214,23 @@ export function buildConversationPrompt(
 
 export function buildAnalysisPrompt(
   selectedText: string,
-  context: string,
+  context: AnalysisContext,
   _provider = "gemini",
-  movieMode = false
+  movieMode = false,
+  lightContextEnabled = true
 ): string {
-  const sanitizedContext = context
+  const sanitize = (value: string): string => value
     .replaceAll(/[\n"'""“”\\]/g, "")
     .replaceAll(/\s+/g, " ");
+  const structuredContext = typeof context === "string" ? null : context;
+  const sanitizedContext = typeof context === "string" ? sanitize(context) : "";
+  const structuredBlock = structuredContext
+    ? `Selection context JSON: ${JSON.stringify({
+        before: structuredContext.before,
+        selected: structuredContext.selected || selectedText,
+        after: structuredContext.after,
+      })}`
+    : "";
 
   const words = selectedText
     .toLowerCase()
@@ -228,16 +238,27 @@ export function buildAnalysisPrompt(
     .filter((word) => word.length > 0 && !UTILITY_WORDS.has(word));
 
   if (words.length <= 2) {
+    if (structuredBlock) {
+      return `${structuredBlock}\nDefine only the selected field.`;
+    }
     return `Context: "${sanitizedContext}" Word: "${selectedText}"`;
   }
 
   const moviePrefix = movieMode ? "I am watching a movie and that these are subtitles." : "";
 
   if (words.length > 9) {
+    if (!lightContextEnabled && (structuredBlock || sanitizedContext)) {
+      const contextPart = structuredBlock || `Selected: "${selectedText}". Context: "${sanitizedContext}".`;
+      return `${moviePrefix}${moviePrefix ? " " : ""}${contextPart}\nParaphrase ONLY the selected field (not the surrounding context) using different simple words. Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
+    }
+
     return `${moviePrefix}Paraphrase using everyday simple language: "${selectedText}". Do not omit anything. Return just one sentence. Only use periods and commas, no other punctuation or formatting.`;
   }
 
   const prefix = movieMode ? `${moviePrefix} ` : "";
+  if (structuredBlock) {
+    return `${prefix}${structuredBlock}\nParaphrase ONLY the selected field (not the surrounding context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
+  }
   return `${prefix}Selected: "${selectedText}". Context: "${sanitizedContext}". Paraphrase ONLY the selected part (not whole context) using different simple words. Only use periods and commas, no other punctuation or formatting.`;
 }
 

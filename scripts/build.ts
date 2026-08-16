@@ -67,6 +67,7 @@ const entries = [
   ["src/content/index.ts", "content.js"],
   ["src/background/index.ts", "background.js"],
   ["src/offscreen/index.ts", "offscreen.js"],
+  ["src/content/youtubeBridge.ts", "youtube-bridge.js"],
 ] as const;
 
 const commonOptions: Omit<esbuild.BuildOptions, "entryPoints" | "outfile"> = {

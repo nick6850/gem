@@ -1,8 +1,19 @@
-import type { LLMProvider, QuickPrompt, SelectionContext } from "../shared/types";
+import type {
+  AnalysisContext,
+  LLMProvider,
+  QuickPrompt,
+  SelectionContext,
+  SelectionPromptContext,
+} from "../shared/types";
 import { createContextExtractor } from "./contextExtractor";
 import { ConversationStore } from "./conversationStore";
 import { LLMService, extractOpenAIText } from "./llmService";
 import { QUICK_PROMPTS } from "./quickPrompts";
+import {
+  DEFAULT_LIGHT_CONTEXT_ENABLED,
+  loadLightContextEnabled,
+  saveLightContextEnabled,
+} from "./contextSettings";
 import {
   DEFAULT_ANALYZE_SHORTCUTS,
   loadAnalyzeShortcuts,
@@ -12,6 +23,11 @@ import {
 } from "./shortcutSettings";
 import { createExtensionUI, type ExtensionUI } from "./ui";
 import { installShortcutDiagnostics } from "./shortcutDiagnostics";
+import { getExpandedYouTubeContext } from "./youtubeTranscript";
+import {
+  loadYouTubeTranscriptFailure,
+  saveYouTubeTranscriptFailure,
+} from "./youtubeTranscriptWarning";
 
 const POPUP_VIEWPORT_MARGIN = 20;
 const PROVIDER_CYCLE: readonly LLMProvider[] = ["openai", "local", "gemini"];
@@ -21,6 +37,32 @@ type ShortcutSelectionSource = "popup" | "document" | "cached";
 interface ShortcutSelection {
   text: string;
   source: ShortcutSelectionSource;
+}
+
+interface PendingSelectionContext {
+  selectedText: string;
+  fullContext: string;
+  promptContext: SelectionPromptContext;
+}
+
+function toPromptContext(context: SelectionContext): SelectionPromptContext {
+  return {
+    before: context.contextBefore,
+    selected: context.selectedText,
+    after: context.contextAfter,
+  };
+}
+
+function promptContextText(context: SelectionPromptContext): string {
+  return [context.before, context.selected, context.after].filter(Boolean).join(" ");
+}
+
+function isTopLevelYouTubePage(): boolean {
+  try {
+    return window.top === window.self && /(^|\.)youtube\.com$/.test(window.location.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function isLLMProvider(provider: string): provider is LLMProvider {
@@ -48,8 +90,14 @@ export function initContentController(): boolean {
 
   let lastSelectedText = "";
   let lastContextText = "";
+  let lastAnalysisContext: AnalysisContext = "";
   let originalText = "";
   let isLeftMouseDown = false;
+  let lightContextEnabled = DEFAULT_LIGHT_CONTEXT_ENABLED;
+  let pendingSelectionContext: Promise<PendingSelectionContext> | null = null;
+  let lastYouTubeSelectionContext: SelectionContext | null = null;
+  let youtubeTranscriptFailure: string | null = null;
+  let youtubeContextAttempt = 0;
   let analyzeShortcuts: ShortcutBinding[] = DEFAULT_ANALYZE_SHORTCUTS.map((shortcut) => ({ ...shortcut }));
 
   const maybeUI = createExtensionUI({
@@ -60,9 +108,18 @@ export function initContentController(): boolean {
         .map((message) => `${message.role}: ${message.content}`)
         .join("\n\n"),
     initialAnalyzeShortcuts: analyzeShortcuts,
+    initialLightContextEnabled: lightContextEnabled,
     onAnalyzeShortcutsChange: (shortcuts) => {
       analyzeShortcuts = shortcuts.map((shortcut) => ({ ...shortcut }));
       void saveAnalyzeShortcuts(analyzeShortcuts);
+    },
+    onLightContextChange: (enabled) => {
+      lightContextEnabled = enabled;
+      conversationStore.setLightContextEnabled(enabled);
+      void saveLightContextEnabled(enabled);
+    },
+    onRetryYouTubeTranscript: () => {
+      retryYouTubeTranscript();
     },
     onClose: () => {
       conversationStore.reset();
@@ -82,6 +139,17 @@ export function initContentController(): boolean {
     analyzeShortcuts = shortcuts;
     ui.setAnalyzeShortcuts(shortcuts);
   });
+  void loadLightContextEnabled().then((enabled) => {
+    lightContextEnabled = enabled;
+    conversationStore.setLightContextEnabled(enabled);
+    ui.setLightContextEnabled(enabled);
+  });
+  if (isTopLevelYouTubePage()) {
+    void loadYouTubeTranscriptFailure().then((reason) => {
+      youtubeTranscriptFailure = reason;
+      if (reason) ui.showYouTubeTranscriptWarning(reason);
+    });
+  }
 
   function getCenteredPopupPosition(): { left: number; top: number } {
     const popupRect = ui.popup.getBoundingClientRect();
@@ -154,7 +222,7 @@ export function initContentController(): boolean {
       return null;
     }
 
-    const popupText = ui.chatContainer.innerText || ui.chatContainer.textContent || "";
+    const popupText = ui.chatContainer.textContent || "";
 
     if (!popupText) {
       return {
@@ -162,10 +230,22 @@ export function initContentController(): boolean {
         contextBefore: "",
         contextAfter: "",
         fullContext: selectedText,
+        source: "popup",
       };
     }
 
-    const selectedIndex = popupText.indexOf(selectedText);
+    const selectedRange = selection.getRangeAt(0);
+    let selectedIndex = -1;
+    if (ui.chatContainer.contains(selectedRange.startContainer)) {
+      try {
+        const prefixRange = document.createRange();
+        prefixRange.selectNodeContents(ui.chatContainer);
+        prefixRange.setEnd(selectedRange.startContainer, selectedRange.startOffset);
+        selectedIndex = prefixRange.toString().length;
+      } catch {
+        selectedIndex = -1;
+      }
+    }
 
     if (selectedIndex === -1) {
       return {
@@ -173,6 +253,7 @@ export function initContentController(): boolean {
         contextBefore: "",
         contextAfter: "",
         fullContext: selectedText,
+        source: "popup",
       };
     }
 
@@ -190,7 +271,76 @@ export function initContentController(): boolean {
       contextBefore,
       contextAfter,
       fullContext,
+      source: "popup",
     };
+  }
+
+  function loadExpandedYouTubeSelection(
+    contextData: SelectionContext
+  ): Promise<PendingSelectionContext> {
+    lastYouTubeSelectionContext = contextData;
+    const fallbackContext = toPromptContext(contextData);
+    const selectedText = contextData.selectedText;
+    const attempt = ++youtubeContextAttempt;
+    return getExpandedYouTubeContext(
+        selectedText,
+        contextData.selectionOccurrenceIndex ?? 0
+      ).then((result) => {
+        const promptContext = result.ok ? result.context : fallbackContext;
+        if (attempt === youtubeContextAttempt) {
+          if (result.ok) {
+            youtubeTranscriptFailure = null;
+            ui.clearYouTubeTranscriptWarning();
+            void saveYouTubeTranscriptFailure(null);
+          } else {
+            youtubeTranscriptFailure = result.reason;
+            ui.showYouTubeTranscriptWarning(result.reason);
+            void saveYouTubeTranscriptFailure(result.reason);
+          }
+        }
+        return {
+          selectedText,
+          fullContext: promptContextText(promptContext),
+          promptContext,
+        };
+      });
+  }
+
+  function storeSelectionContext(contextData: SelectionContext): void {
+    lastSelectedText = contextData.selectedText;
+    lastContextText = contextData.fullContext;
+    lastAnalysisContext = toPromptContext(contextData);
+    originalText = contextData.selectedText;
+
+    if (contextData.source === "youtube-subtitle" && !lightContextEnabled) {
+      pendingSelectionContext = loadExpandedYouTubeSelection(contextData);
+      return;
+    }
+
+    pendingSelectionContext = Promise.resolve({
+      selectedText: contextData.selectedText,
+      fullContext: contextData.fullContext,
+      promptContext: toPromptContext(contextData),
+    });
+  }
+
+  function retryYouTubeTranscript(): void {
+    if (lastYouTubeSelectionContext) {
+      pendingSelectionContext = loadExpandedYouTubeSelection(lastYouTubeSelectionContext);
+      return;
+    }
+
+    const currentContext = getContextAroundSelection();
+    if (currentContext.source === "youtube-subtitle" && currentContext.selectedText) {
+      pendingSelectionContext = loadExpandedYouTubeSelection(currentContext);
+      return;
+    }
+
+    if (youtubeTranscriptFailure) {
+      ui.showYouTubeTranscriptWarning(
+        `${youtubeTranscriptFailure} Select a subtitle, then press Retry.`
+      );
+    }
   }
 
   function playTTS(text: string): void {
@@ -229,19 +379,16 @@ export function initContentController(): boolean {
       return;
     }
 
-    lastSelectedText = selection.text;
-    originalText = selection.text;
-
     if (selection.source === "popup") {
       const popupContext = getContextFromPopupSelection();
       if (popupContext) {
-        lastContextText = popupContext.fullContext;
+        storeSelectionContext(popupContext);
       }
       return;
     }
 
     const contextData = getContextAroundSelection();
-    lastContextText = contextData.fullContext;
+    storeSelectionContext(contextData);
   }
 
   function buildQuickPromptText(aiPrompt: string): string {
@@ -283,6 +430,12 @@ export function initContentController(): boolean {
     ui.floatingButton.style.display = "none";
 
     try {
+      const resolvedContext = await pendingSelectionContext;
+      if (resolvedContext && resolvedContext.selectedText === lastSelectedText) {
+        lastContextText = resolvedContext.fullContext;
+        lastAnalysisContext = resolvedContext.promptContext;
+      }
+
       console.log(
         "Sending API request for selectedText:",
         lastSelectedText,
@@ -291,7 +444,7 @@ export function initContentController(): boolean {
       );
       const analysis = await llmService.analyzeText(
         lastSelectedText,
-        lastContextText.replace(/<<<SELECTED>>>|<<<\/SELECTED>>>/g, "")
+        lastAnalysisContext
       );
       console.log("Received analysis:", analysis);
 
@@ -374,15 +527,14 @@ export function initContentController(): boolean {
 
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    const { selectedText: cleanSelected, fullContext: context } = getContextAroundSelection();
+    const contextData = getContextAroundSelection();
+    const { selectedText: cleanSelected } = contextData;
 
     if (originalText && originalText !== cleanSelected) {
       conversationStore.reset();
     }
 
-    lastSelectedText = cleanSelected;
-    lastContextText = context;
-    originalText = cleanSelected;
+    storeSelectionContext(contextData);
 
     positionButton(rect);
 
