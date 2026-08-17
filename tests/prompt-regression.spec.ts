@@ -72,6 +72,24 @@ test.describe("prompt builders", () => {
     expect(systemPrompt).toContain("Code context, use the programming meaning.");
   });
 
+  test("uses selection context only to disambiguate a general definition", async ({ page }) => {
+    const result = await page.evaluate(() => ({
+      systemPrompt: window.FOLLOWUP_SYSTEM_PROMPT,
+      requestPrompt: window.buildAnalysisPrompt("suite", {
+        before: "There is an entire",
+        selected: "suite",
+        after: "of different gimbal behavior modes and controls.",
+      }),
+    }));
+
+    expect(result.systemPrompt).toContain(
+      "Use the surrounding context only to choose the intended meaning, then give a general definition that stands on its own."
+    );
+    expect(result.systemPrompt).not.toContain("Do not copy or mention any people");
+    expect(result.requestPrompt).toContain('"selected":"suite"');
+    expect(result.requestPrompt).toContain("gimbal behavior modes and controls");
+  });
+
   test("puts the direct definition cue in the request instead of the system prompt", async ({ page }) => {
     const result = await page.evaluate(() => ({
       systemPrompt: window.FOLLOWUP_SYSTEM_PROMPT,
