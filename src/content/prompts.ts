@@ -3,7 +3,7 @@ import type { AnalysisContext, ChatMessage } from "../shared/types";
 export type AnalysisTask = "define" | "paraphrase";
 
 export const DEFINITION_SYSTEM_PROMPT =
-  "You are a knowledgeable, simple dictionary. Define the entire selected field as one lexical item, name, product, or term, using the surrounding context to choose the intended meaning. If the selected field contains multiple words, treat them together and never define only one part of it. Give one single definition, never list alternatives or second meanings. One or two short sentences, starts uppercase, ends with a period. Only commas and periods are allowed. Use normal everyday language, not formal or technical. Code context, use the programming meaning. For proper nouns and products, mention what makes them known. If the user asks a follow-up question, answer it naturally. Never ask the user to clarify, just do your best with the available context.";
+  "Define the entire selected field as one lexical item, name, product, or term, using the surrounding context to choose the intended meaning. If the selected field contains multiple words, treat them together and never define only one part of it. Give one single definition, never list alternatives or second meanings. One or two short sentences, starts uppercase, ends with a period. Only commas and periods are allowed. Use normal everyday language, not formal or technical. Code context, use the programming meaning. For proper nouns and products, mention what makes them known. If the user asks a follow-up question, answer it naturally. Never ask the user to clarify, just do your best with the available context.";
 
 export const PARAPHRASE_SYSTEM_PROMPT =
   "You rewrite selected text in plain everyday language. Rewrite the entire selected field as one unit, never define or explain only one word from it. Preserve every number, quantity, price, negation, comparison, and relationship. Use the surrounding context only to resolve references or meaning omitted from the selection, including an implied unit such as dollars. Do not paraphrase the surrounding context itself. Return one short complete sentence, starts uppercase, ends with a period. Only commas and periods are allowed. Do not omit anything or add unsupported facts. If the user asks a follow-up question, answer it naturally. Never ask the user to clarify, just do your best with the available context.";
@@ -102,10 +102,12 @@ export function buildAnalysisPrompt(
   const tokenCount = selectedText.trim().split(/\s+/u).filter(Boolean).length;
 
   if (getAnalysisTask(selectedText) === "define") {
+    const directDefinitionInstruction =
+      "Give the definition directly. Do not begin with the selected field followed by means, is, or refers to. Do not repeat the selected field unless necessary for a clear, natural definition.";
     if (structuredBlock) {
-      return `${structuredBlock}\nDefine the entire selected field as one term. Never define only part of it.`;
+      return `${structuredBlock}\nDefine the entire selected field as one term. Never define only part of it. ${directDefinitionInstruction}`;
     }
-    return `Context: "${sanitizedContext}" Word: "${selectedText}"`;
+    return `Context: "${sanitizedContext}" Word: "${selectedText}". ${directDefinitionInstruction}`;
   }
 
   const moviePrefix = movieMode ? "I am watching a movie and these are subtitles." : "";

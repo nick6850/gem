@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { QUICK_PROMPTS } from "../src/content/quickPrompts";
 import { loadExtensionPage } from "./helpers/extensionPage.js";
 
 test.describe("prompt builders", () => {
@@ -21,8 +22,10 @@ test.describe("prompt builders", () => {
       ),
     }));
 
-    expect(prompts.singleWord).toBe('Context: "She nailed the presentation." Word: "nailed"');
-    expect(prompts.twoWordPhrase).toBe('Context: "Dark factories are coming." Word: "dark factories"');
+    expect(prompts.singleWord).toContain('Context: "She nailed the presentation." Word: "nailed"');
+    expect(prompts.twoWordPhrase).toContain('Context: "Dark factories are coming." Word: "dark factories"');
+    expect(prompts.singleWord).toContain("Give the definition directly.");
+    expect(prompts.twoWordPhrase).toContain("Do not repeat the selected field unless necessary");
     expect(prompts.longerPhrase).toContain('Selected: "spin the wheel a little bit"');
     expect(prompts.longerPhrase).toContain('Context: "A human had to spin the wheel a little bit."');
     expect(prompts.longerPhrase).toContain("Paraphrase the entire selected field as one unit");
@@ -40,8 +43,8 @@ test.describe("prompt builders", () => {
       movieLong: window.buildAnalysisPrompt("one two three four five six seven eight nine ten", "context", "openai", true),
     }));
 
-    expect(prompts.movieSingle).toBe('Context: "Line withquotes and slash" Word: "crashed"');
-    expect(prompts.moviePhrase).toBe('Context: "You want to fill me in?" Word: "fill me in"');
+    expect(prompts.movieSingle).toContain('Context: "Line withquotes and slash" Word: "crashed"');
+    expect(prompts.moviePhrase).toContain('Context: "You want to fill me in?" Word: "fill me in"');
     expect(prompts.movieLong).toContain(
       'I am watching a movie and these are subtitles. Selected: "one two three four five six seven eight nine ten"'
     );
@@ -67,6 +70,46 @@ test.describe("prompt builders", () => {
     const systemPrompt = await page.evaluate(() => window.FOLLOWUP_SYSTEM_PROMPT);
 
     expect(systemPrompt).toContain("Code context, use the programming meaning.");
+  });
+
+  test("puts the direct definition cue in the request instead of the system prompt", async ({ page }) => {
+    const result = await page.evaluate(() => ({
+      systemPrompt: window.FOLLOWUP_SYSTEM_PROMPT,
+      requestPrompt: window.buildAnalysisPrompt("suite", {
+        before: "There is an entire",
+        selected: "suite",
+        after: "of behavior modes.",
+      }),
+    }));
+
+    expect(result.systemPrompt).not.toContain("You are a knowledgeable, simple dictionary.");
+    expect(result.systemPrompt).not.toContain("Give the definition directly.");
+    expect(result.systemPrompt).not.toContain("Do not repeat the selected field");
+    expect(result.requestPrompt).toContain("Give the definition directly.");
+    expect(result.requestPrompt).toContain(
+      "Do not begin with the selected field followed by means, is, or refers to."
+    );
+    expect(result.requestPrompt).toContain(
+      "Do not repeat the selected field unless necessary for a clear, natural definition."
+    );
+  });
+
+  test("keeps sentence-specific instructions out of the system prompt", async ({ page }) => {
+    const systemPrompt = await page.evaluate(() => window.FOLLOWUP_SYSTEM_PROMPT);
+
+    expect(systemPrompt).not.toContain("example sentence");
+    expect(systemPrompt).not.toContain("new, unrelated situation");
+  });
+
+  test("puts unrelated-context guidance in the Sentence quick prompt", () => {
+    const sentencePrompt = QUICK_PROMPTS.find((prompt) => prompt.label === "Sentence");
+
+    expect(sentencePrompt?.aiPrompt).toContain("using the selected word once");
+    expect(sentencePrompt?.aiPrompt).toContain("Use a new, unrelated situation");
+    expect(sentencePrompt?.aiPrompt).toContain(
+      "Do not reuse distinctive people, objects, actions, places, or subject matter from the original context"
+    );
+    expect(sentencePrompt?.aiPrompt).toContain("Return just that sentence.");
   });
 
   test("keeps structured selection fields valid when page text resembles JSON", async ({ page }) => {

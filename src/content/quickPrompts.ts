@@ -23,7 +23,7 @@ export const QUICK_PROMPTS: readonly QuickPrompt[] = [
     label: "Sentence",
     userMessage: "Use it in a sentence",
     aiPrompt:
-      "I am an English learner. Create a sentence using the selected word to demonstrate it once more (like they do in dictionaries). Return just that sentence",
+      "I am an English learner. Create one natural sentence using the selected word once with the same contextual meaning, like an example in a dictionary. Use a new, unrelated situation. Do not reuse distinctive people, objects, actions, places, or subject matter from the original context. Return just that sentence.",
     errorContext: "Use it in another sentence.",
   },
   {

@@ -30,9 +30,12 @@ test.describe("OpenAI provider", () => {
       max_output_tokens: 500,
       text: { verbosity: "low" },
     });
-    expect(call.options.body.input).toEqual([
-      { role: "user", content: 'Context: "She nailed it." Word: "nailed"' },
-    ]);
+    const input = call.options.body.input as Array<{ role: string; content: string }>;
+    expect(input).toHaveLength(1);
+    expect(input[0]).toMatchObject({ role: "user" });
+    expect(input[0]?.content).toContain('Context: "She nailed it." Word: "nailed"');
+    expect(input[0]?.content).toContain("Give the definition directly.");
+    expect(input[0]?.content).toContain("Do not repeat the selected field unless necessary");
   });
 
   test("extracts nested response text fallback", async ({ page }) => {
