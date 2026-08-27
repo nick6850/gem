@@ -423,11 +423,19 @@ function fetchAlternateCaptionTracks(videoId: string): Promise<YouTubeCaptionTra
   return request;
 }
 
-function cueMatchesSelection(cue: TranscriptCue, selectedText: string, currentTime: number): boolean {
-  const selected = normalizedText(selectedText);
-  const cueText = normalizedText(cue.text);
-  const cueEnd = cue.start + Math.max(cue.duration, 1);
-  return Boolean(selected) && cueText.includes(selected) && currentTime >= cue.start - 8 && currentTime <= cueEnd + 8;
+function transcriptMatchesSelection(
+  cues: readonly TranscriptCue[],
+  selectedText: string,
+  currentTime: number
+): boolean {
+  const nearbyText = cues
+    .filter((cue) => {
+      const cueEnd = cue.start + Math.max(cue.duration, 1);
+      return currentTime >= cue.start - 8 && currentTime <= cueEnd + 8;
+    })
+    .map((cue) => cue.text)
+    .join(" ");
+  return selectedOccurrenceRange(nearbyText, selectedText, 0) !== null;
 }
 
 function selectedCueIndex(cues: readonly TranscriptCue[], selectedText: string, currentTime: number): number {
@@ -472,25 +480,38 @@ function splitSelectedOccurrence(
   selectedText: string,
   occurrenceIndex = 0
 ): SelectionPromptContext | null {
-  const normalizedSelection = selectedText.trim().toLocaleLowerCase();
-  if (!normalizedSelection) return null;
-  const normalizedCue = text.toLocaleLowerCase();
-  let selectedStart = -1;
-  let searchStart = 0;
-
-  for (let index = 0; index <= occurrenceIndex; index += 1) {
-    selectedStart = normalizedCue.indexOf(normalizedSelection, searchStart);
-    if (selectedStart === -1) break;
-    searchStart = selectedStart + normalizedSelection.length;
-  }
-  if (selectedStart === -1) return null;
-
-  const selectedEnd = selectedStart + selectedText.trim().length;
+  const range = selectedOccurrenceRange(text, selectedText, occurrenceIndex);
+  if (!range) return null;
   return {
-    before: text.slice(0, selectedStart),
+    before: text.slice(0, range.start),
     selected: selectedText,
-    after: text.slice(selectedEnd),
+    after: text.slice(range.end),
   };
+}
+
+interface TextRange {
+  start: number;
+  end: number;
+}
+
+function selectionRanges(text: string, selectedText: string): TextRange[] {
+  const tokens = normalizedText(selectedText).split(" ").filter(Boolean);
+  if (tokens.length === 0) return [];
+  const escapedTokens = tokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = escapedTokens.join("[^\\p{L}\\p{N}]+");
+  return [...text.matchAll(new RegExp(pattern, "giu"))].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+}
+
+function selectedOccurrenceRange(
+  text: string,
+  selectedText: string,
+  occurrenceIndex: number
+): TextRange | null {
+  const ranges = selectionRanges(text, selectedText);
+  return ranges[occurrenceIndex] ?? null;
 }
 
 function limitCueWindow(
@@ -520,9 +541,33 @@ function limitCueWindow(
 
   const targetCue = cues[targetIndex];
   if (!targetCue) return null;
-  const splitTarget = splitSelectedOccurrence(targetCue.text, selectedText, occurrenceIndex);
-  if (!splitTarget) return null;
   const normalize = (parts: string[]): string => parts.join(" ").replace(/\s+/g, " ").trim();
+
+  const splitTarget = splitSelectedOccurrence(targetCue.text, selectedText, occurrenceIndex);
+  if (!splitTarget) {
+    const windowText = normalize(cues.slice(startIndex, endIndex + 1).map((cue) => cue.text));
+    const ranges = selectionRanges(windowText, selectedText);
+    if (ranges.length === 0) return null;
+
+    const targetStart = normalize(cues.slice(startIndex, targetIndex).map((cue) => cue.text)).length
+      + (targetIndex > startIndex ? 1 : 0);
+    const targetEnd = targetStart + targetCue.text.length;
+    const targetMiddle = (targetStart + targetEnd) / 2;
+    const nearestRange = ranges.reduce((nearest, range) => {
+      const overlapsTarget = range.start < targetEnd && range.end > targetStart;
+      const nearestOverlaps = nearest.start < targetEnd && nearest.end > targetStart;
+      if (overlapsTarget !== nearestOverlaps) return overlapsTarget ? range : nearest;
+      const distance = Math.abs((range.start + range.end) / 2 - targetMiddle);
+      const nearestDistance = Math.abs((nearest.start + nearest.end) / 2 - targetMiddle);
+      return distance < nearestDistance ? range : nearest;
+    });
+
+    return {
+      before: windowText.slice(0, nearestRange.start).trim(),
+      selected: selectedText,
+      after: windowText.slice(nearestRange.end).trim(),
+    };
+  }
 
   return {
     before: normalize([
@@ -605,7 +650,7 @@ async function transcriptFromResolution(
   );
   const matching = candidates.flatMap((candidate) => {
     if (candidate.status !== "fulfilled") return [];
-    return candidate.value.cues.some((cue) => cueMatchesSelection(cue, selectedText, state.currentTime))
+    return transcriptMatchesSelection(candidate.value.cues, selectedText, state.currentTime)
       ? [candidate.value]
       : [];
   });
