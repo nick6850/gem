@@ -336,9 +336,28 @@ export function initContentController(): boolean {
       return;
     }
 
+    const visibleSubtitle = [...document.querySelectorAll<HTMLElement>(
+      ".ytp-caption-window-container .ytp-caption-segment"
+    )]
+      .map((segment) => segment.innerText || segment.textContent || "")
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (visibleSubtitle) {
+      pendingSelectionContext = loadExpandedYouTubeSelection({
+        selectedText: visibleSubtitle,
+        contextBefore: "",
+        contextAfter: "",
+        fullContext: visibleSubtitle,
+        source: "youtube-subtitle",
+        selectionOccurrenceIndex: 0,
+      });
+      return;
+    }
+
     if (youtubeTranscriptFailure) {
       ui.showYouTubeTranscriptWarning(
-        `${youtubeTranscriptFailure} Select a subtitle, then press Retry.`
+        `${youtubeTranscriptFailure} Play the video until subtitles are visible, then press Retry.`
       );
     }
   }
