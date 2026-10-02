@@ -79,10 +79,29 @@ function serializeActiveTrack(value: unknown): Record<string, string> | null {
 function readCaptionState(): Record<string, unknown> {
   const player = document.querySelector<YouTubePlayerElement>("#movie_player");
   const pageWindow = window as PageWindow;
-  const playerResponse = player?.getPlayerResponse?.() ?? pageWindow.ytInitialPlayerResponse;
-  const rawTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+  let playerResponse: PlayerResponse | undefined;
+  try {
+    playerResponse = player?.getPlayerResponse?.();
+  } catch {
+    // The player API can be unavailable while YouTube replaces the player.
+  }
+  const videoId = new URL(location.href).searchParams.get("v")
+    || playerResponse?.videoDetails?.videoId
+    || "";
+  const responses = [playerResponse, pageWindow.ytInitialPlayerResponse].filter(
+    (response): response is PlayerResponse => Boolean(response)
+      && (!videoId || response?.videoDetails?.videoId === videoId)
+  );
+  playerResponse = responses[0];
+  // A partial player response must not hide initial data for the same video.
+  // Initial data for a previous video is stale after YouTube SPA navigation.
+  const rawTracks = responses.map(
+    (response) => response.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? []
+  ).find((tracks) => tracks.some((track) => track.baseUrl && track.languageCode)) ?? [];
+  const trackUrls = new Set<string>();
   const captionTracks = rawTracks.flatMap((track) => {
-    if (!track.baseUrl || !track.languageCode) return [];
+    if (!track.baseUrl || !track.languageCode || trackUrls.has(track.baseUrl)) return [];
+    trackUrls.add(track.baseUrl);
     return [{
       baseUrl: track.baseUrl,
       languageCode: track.languageCode,
@@ -93,13 +112,24 @@ function readCaptionState(): Record<string, unknown> {
     }];
   });
   const video = document.querySelector<HTMLVideoElement>("video");
-  const currentTime = player?.getCurrentTime?.() ?? video?.currentTime ?? 0;
+  let currentTime = video?.currentTime ?? 0;
+  try {
+    currentTime = player?.getCurrentTime?.() ?? currentTime;
+  } catch {
+    // Use the video clock while the player API is unavailable.
+  }
+  let activeTrack: Record<string, string> | null = null;
+  try {
+    activeTrack = serializeActiveTrack(player?.getOption?.("captions", "track"));
+  } catch {
+    // Transcript matching can identify the track when this API is unavailable.
+  }
 
   return {
-    videoId: playerResponse?.videoDetails?.videoId ?? new URL(location.href).searchParams.get("v") ?? "",
+    videoId,
     title: playerResponse?.videoDetails?.title ?? document.title.replace(/\s+-\s+YouTube$/, ""),
     currentTime: Number.isFinite(currentTime) ? currentTime : 0,
-    activeTrack: serializeActiveTrack(player?.getOption?.("captions", "track")),
+    activeTrack,
     captionTracks,
   };
 }

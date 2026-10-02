@@ -624,11 +624,19 @@ async function transcriptForSelectedTrack(
   const alternateTracks = await fetchAlternateCaptionTracks(state.videoId);
   if (alternateTracks.length === 0) return null;
   const alternateState = { ...state, captionTracks: alternateTracks };
-  return transcriptFromResolution(
-    alternateState,
-    selectedText,
-    resolveActiveCaptionTracks(alternateState)
-  );
+  try {
+    const cues = await transcriptFromResolution(
+      alternateState,
+      selectedText,
+      resolveActiveCaptionTracks(alternateState)
+    );
+    if (!cues) alternateTrackCache.delete(state.videoId);
+    return cues;
+  } catch (error) {
+    // Retry must obtain fresh signed URLs after a failed caption download.
+    alternateTrackCache.delete(state.videoId);
+    throw error;
+  }
 }
 
 async function transcriptFromResolution(
@@ -666,13 +674,15 @@ export async function getExpandedYouTubeContext(
   if (!state) {
     return { ok: false, reason: "Could not read YouTube's active caption state." };
   }
-  if (state.captionTracks.length === 0) {
-    return { ok: false, reason: "YouTube did not expose any caption tracks for this video." };
-  }
   try {
     const cues = await transcriptForSelectedTrack(state, selectedText);
     if (!cues) {
-      return { ok: false, reason: "The active YouTube caption track could not be downloaded or identified." };
+      return {
+        ok: false,
+        reason: state.captionTracks.length === 0
+          ? "YouTube did not expose any caption tracks, and the fallback player request could not recover them."
+          : "The active YouTube caption track could not be downloaded or identified.",
+      };
     }
     const context = buildTranscriptContext(
       cues,
